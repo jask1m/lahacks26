@@ -1,0 +1,100 @@
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import { Test, TestStep } from "@/lib/supabase/types";
+import { WorkflowEditor } from "@/components/workflow/workflow-editor";
+
+export default function TestEditorPage() {
+  const params = useParams();
+  const router = useRouter();
+  const projectId = params.projectId as string;
+  const testId = params.testId as string;
+
+  const [test, setTest] = useState<Test | null>(null);
+  const [steps, setSteps] = useState<TestStep[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("tests")
+        .select("*")
+        .eq("id", testId)
+        .single();
+      if (data) {
+        setTest(data);
+        setSteps(data.steps || []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [testId]);
+
+  const handleSave = useCallback(async () => {
+    if (!test) return;
+    setSaving(true);
+    await fetch(`/api/tests/${testId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ steps, name: test.name }),
+    });
+    setSaving(false);
+  }, [test, testId, steps]);
+
+  const handleStepsChange = useCallback(
+    (newSteps: TestStep[]) => {
+      setSteps(newSteps);
+      // Auto-save with debounce
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(async () => {
+        await fetch(`/api/tests/${testId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ steps: newSteps, name: test?.name }),
+        });
+      }, 1500);
+    },
+    [testId, test]
+  );
+
+  const handleRun = useCallback(async () => {
+    // Save first, then navigate to run
+    await fetch(`/api/tests/${testId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ steps, name: test?.name }),
+    });
+
+    // Start a run
+    const res = await fetch(`/api/tests/${testId}/run`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      const { runId } = await res.json();
+      router.push(
+        `/dashboard/projects/${projectId}/tests/${testId}/runs/${runId}`
+      );
+    }
+  }, [testId, projectId, steps, test, router]);
+
+  if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (!test) return <div className="p-6">Test not found</div>;
+
+  return (
+    <div className="h-[calc(100vh-3.5rem)]">
+      <WorkflowEditor
+        testName={test.name}
+        steps={steps}
+        onStepsChange={handleStepsChange}
+        onSave={handleSave}
+        onRun={handleRun}
+        saving={saving}
+      />
+    </div>
+  );
+}
