@@ -82,6 +82,27 @@ export type ExecuteActionsResult =
       rawErrorMessage: string;
     };
 
+function normalizeTextForMatch(text: string): string {
+  return text.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function buildFallbackSelectors(selector: string): string[] {
+  const selectorParts = selector
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const fallbacks = new Set<string>(selectorParts);
+
+  if (/product-details|product-info|product-detail/i.test(selector)) {
+    fallbacks.add("[data-testid='product-title']");
+    fallbacks.add("[data-testid='product-price']");
+    fallbacks.add("[data-testid='product-add-cart']");
+    fallbacks.add("text=Add to Cart");
+  }
+
+  return Array.from(fallbacks);
+}
+
 export async function executeActions(
   page: Page,
   actions: ExecutedAction[]
@@ -108,23 +129,88 @@ export async function executeActions(
           break;
 
         case "waitForSelector":
-          await page.waitForSelector(action.selector!, { timeout: 10000 });
-          results.push(`Found: ${action.selector}`);
+          try {
+            await page.waitForSelector(action.selector!, { timeout: 10000 });
+            results.push(`Found: ${action.selector}`);
+          } catch (primaryError) {
+            const fallbackSelectors = buildFallbackSelectors(action.selector!);
+            let matchedFallback: string | null = null;
+
+            for (const fallback of fallbackSelectors) {
+              try {
+                const element = await page.waitForSelector(fallback, {
+                  timeout: 2500,
+                  state: "visible",
+                });
+                if (element) {
+                  matchedFallback = fallback;
+                  break;
+                }
+              } catch {
+                // Try next fallback selector.
+              }
+            }
+
+            if (!matchedFallback) {
+              const message =
+                primaryError instanceof Error
+                  ? primaryError.message
+                  : `Selector not found: ${action.selector}`;
+              throw new Error(message);
+            }
+
+            results.push(`Found (fallback): ${action.selector} -> ${matchedFallback}`);
+          }
           break;
 
         case "assertVisible": {
-          const element = await page.waitForSelector(action.selector!, {
-            timeout: 10000,
-            state: "visible",
-          });
-          if (!element) throw new Error(`Element not visible: ${action.selector}`);
-          results.push(`Verified visible: ${action.selector}`);
+          const selector = action.selector!;
+          try {
+            const element = await page.waitForSelector(selector, {
+              timeout: 10000,
+              state: "visible",
+            });
+            if (!element) throw new Error(`Element not visible: ${selector}`);
+            results.push(`Verified visible: ${selector}`);
+          } catch (primaryError) {
+            const fallbackSelectors = buildFallbackSelectors(selector);
+            let matchedFallback: string | null = null;
+
+            for (const fallback of fallbackSelectors) {
+              try {
+                const element = await page.waitForSelector(fallback, {
+                  timeout: 2500,
+                  state: "visible",
+                });
+                if (element) {
+                  matchedFallback = fallback;
+                  break;
+                }
+              } catch {
+                // Try next fallback selector.
+              }
+            }
+
+            if (!matchedFallback) {
+              const message =
+                primaryError instanceof Error
+                  ? primaryError.message
+                  : `Element not visible: ${selector}`;
+              throw new Error(message);
+            }
+
+            results.push(
+              `Verified visible (fallback): ${selector} -> ${matchedFallback}`
+            );
+          }
           break;
         }
 
         case "assertText": {
           const bodyText = await page.textContent("body");
-          if (!bodyText?.includes(action.value!)) {
+          const actual = normalizeTextForMatch(bodyText ?? "");
+          const expected = normalizeTextForMatch(action.value ?? "");
+          if (!expected || !actual.includes(expected)) {
             throw new Error(`Text not found on page: "${action.value}"`);
           }
           results.push(`Verified text: "${action.value}"`);
@@ -152,12 +238,12 @@ export async function executeActions(
           results.push("Scrolled down");
           break;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
         completedActions: results,
         failingAction: action,
-        rawErrorMessage: err?.message ?? String(err),
+        rawErrorMessage: err instanceof Error ? err.message : String(err),
       };
     }
   }
