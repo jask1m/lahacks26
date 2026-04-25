@@ -653,7 +653,7 @@ async function executeModelAuthPlan(
 ) {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: getModel(),
     schema: executableActionsSchema,
     system: `You build deterministic browser actions for a workflow auth block.
 
@@ -793,7 +793,7 @@ export async function translateStepWithFallback(
 ): Promise<ExecutableAction[]> {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: getModel(),
     schema: executableActionsSchema,
     system: EXECUTOR_SYSTEM_PROMPT,
     prompt: `Current page snapshot:
