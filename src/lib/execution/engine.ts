@@ -24,13 +24,11 @@ import {
 import { uploadScreenshot } from "./screenshot";
 import { runEventBus } from "./event-bus";
 import {
-  ERROR_REPORT_VERSION,
   serializeErrorReport,
   truncateStack,
   type StructuredErrorReport,
 } from "./error-report";
 import {
-  buildFallbackAnalysis,
   type AnalyzeFailureContext,
 } from "@/lib/ai/analyze-failure";
 
