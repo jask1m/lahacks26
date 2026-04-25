@@ -210,15 +210,14 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
 
           {runStep?.screenshot_url && (
             <div
-              className="mt-2 rounded-[5px] border border-border bg-bg-3 overflow-hidden flex items-center justify-center h-20 cursor-pointer hover:opacity-90 gap-[5px] text-[10.5px] text-text-tertiary"
+              className="mt-2 rounded-[5px] border border-border bg-bg-3 overflow-hidden cursor-pointer hover:opacity-90"
               onClick={(e) => { e.stopPropagation(); window.open(runStep.screenshot_url!, "_blank"); }}
             >
-              <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
-                <rect x="1" y="2" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                <circle cx="4.5" cy="5.5" r="1" fill="currentColor" opacity="0.4"/>
-                <path d="M1 10l3.5-3 3 3 2.5-2.5 3 2.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
-              </svg>
-              Screenshot captured
+              <img
+                src={runStep.screenshot_url}
+                alt="Step screenshot"
+                className="w-full h-auto block"
+              />
             </div>
           )}
         </div>
