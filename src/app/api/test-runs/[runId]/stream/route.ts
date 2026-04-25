@@ -13,6 +13,25 @@ export async function GET(
 
   const stream = new ReadableStream({
     start(controller) {
+      let closed = false;
+
+      function safeEnqueue(chunk: Uint8Array) {
+        if (closed) return;
+        try {
+          controller.enqueue(chunk);
+        } catch {
+          closed = true;
+        }
+      }
+
+      function safeClose() {
+        if (closed) return;
+        closed = true;
+        try {
+          controller.close();
+        } catch {}
+      }
+
       // First, send current state from DB
       (async () => {
         const { data: run } = await supabase
@@ -29,7 +48,7 @@ export async function GET(
 
         if (run) {
           const cachedLiveViewUrl = runEventBus.getLiveViewUrl(runId);
-          controller.enqueue(
+          safeEnqueue(
             encoder.encode(
               `data: ${JSON.stringify({
                 type: "init",
@@ -42,7 +61,7 @@ export async function GET(
 
           // If already completed, close stream
           if (run.status === "passed" || run.status === "failed") {
-            controller.close();
+            safeClose();
             return;
           }
         }
@@ -51,23 +70,23 @@ export async function GET(
         const unsubscribe = runEventBus.subscribe(
           runId,
           (update: RunUpdate) => {
-            try {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify(update)}\n\n`)
-              );
-
-              // Close stream when run completes
-              if (
-                update.type === "run" &&
-                (update.runStatus === "passed" || update.runStatus === "failed")
-              ) {
-                setTimeout(() => {
-                  unsubscribe();
-                  controller.close();
-                }, 500);
-              }
-            } catch {
+            if (closed) {
               unsubscribe();
+              return;
+            }
+            safeEnqueue(
+              encoder.encode(`data: ${JSON.stringify(update)}\n\n`)
+            );
+
+            // Close stream when run completes
+            if (
+              update.type === "run" &&
+              (update.runStatus === "passed" || update.runStatus === "failed")
+            ) {
+              setTimeout(() => {
+                unsubscribe();
+                safeClose();
+              }, 500);
             }
           }
         );
@@ -75,9 +94,7 @@ export async function GET(
         // Clean up after 5 minutes max
         setTimeout(() => {
           unsubscribe();
-          try {
-            controller.close();
-          } catch {}
+          safeClose();
         }, 300000);
       })();
     },

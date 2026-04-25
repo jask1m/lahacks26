@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
+import { resolveAuthConfig } from "@/lib/auth/storage";
 import { executeTestRun } from "@/lib/execution/engine";
 import { Test } from "@/lib/supabase/types";
 import { getProjectExecutionModeFromString } from "@/lib/projects/url";
@@ -43,6 +44,8 @@ export async function POST(
 
   await supabase.from("test_run_steps").insert(stepRecords);
 
+  const resolvedAuth = await resolveAuthConfig({ testId }).catch(() => null);
+
   // Fire and forget — start execution in background
   const testWithUrl: Test & {
     projects: { url: string; execution_mode?: "browserbase" | "local" };
@@ -55,6 +58,7 @@ export async function POST(
       (testWithUrl.projects?.url
         ? getProjectExecutionModeFromString(testWithUrl.projects.url)
         : undefined),
+    resolvedAuthConfig: resolvedAuth,
   }).catch((err) => console.error("Execution error:", err));
 
   return NextResponse.json({ runId: run.id });

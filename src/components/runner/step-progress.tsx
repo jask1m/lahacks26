@@ -12,7 +12,7 @@ interface StepProgressProps {
 export function StepProgress({ steps, runSteps }: StepProgressProps) {
   return (
     <ScrollArea className="h-full">
-      <div className="p-4 space-y-3">
+      <div className="py-1.5 px-1.5 space-y-0.5">
         {steps.map((step, index) => (
           <StepCard
             key={step.id}
