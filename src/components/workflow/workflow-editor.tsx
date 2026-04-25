@@ -16,6 +16,7 @@ interface WorkflowEditorProps {
   onSave: () => void;
   onRun: () => void;
   saving?: boolean;
+  toolbarActions?: React.ReactNode;
 }
 
 function Connector() {
@@ -29,6 +30,7 @@ export function WorkflowEditor({
   onSave,
   onRun,
   saving,
+  toolbarActions,
 }: WorkflowEditorProps) {
   // Modal state: which insert index the + button was clicked at
   const [modalInsertIndex, setModalInsertIndex] = useState<number | null>(null);
@@ -52,7 +54,7 @@ export function WorkflowEditor({
   );
 
   const handleAddStep = useCallback(
-    (type: "act" | "assert") => {
+    (type: "act" | "assert" | "auth") => {
       if (modalInsertIndex === null) return;
       const newStep: TestStep = { id: uuidv4(), type, description: "" };
       const newSteps = [...steps];
@@ -70,6 +72,7 @@ export function WorkflowEditor({
       <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
         <div />
         <div className="flex items-center gap-2">
+          {toolbarActions}
           <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? "Saving..." : "Save"}

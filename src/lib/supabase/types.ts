@@ -1,4 +1,11 @@
+import type { ExecutableAction } from "@/lib/execution/actions";
 import type { ProjectExecutionMode } from "@/lib/projects/url";
+import type {
+  AuthStrategyConfig,
+  CredentialSource,
+  TestAuthMode,
+  TestStepType,
+} from "@/lib/auth/types";
 
 export interface Project {
   id: string;
@@ -10,8 +17,19 @@ export interface Project {
 
 export interface TestStep {
   id: string;
-  type: "act" | "assert";
+  type: TestStepType;
   description: string;
+  authConfig?: AuthStrategyConfig;
+  authCredentials?: {
+    username: string;
+    password: string;
+  } | null;
+  credentialSource?: CredentialSource | null;
+  compiledActions?: ExecutableAction[];
+  compileStatus?: "pending" | "compiled" | "failed";
+  compileVersion?: number;
+  compileNotes?: string;
+  fallbackPolicy?: "llm_on_failure" | "none";
 }
 
 export interface Test {
@@ -21,6 +39,25 @@ export interface Test {
   description: string;
   steps: TestStep[];
   created_at: string;
+}
+
+export interface ProjectAuthConfig {
+  project_id: string;
+  config: AuthStrategyConfig;
+  username: string;
+  password: string;
+  credential_source: CredentialSource;
+  updated_at: string;
+}
+
+export interface TestAuthConfig {
+  test_id: string;
+  mode: TestAuthMode;
+  config: AuthStrategyConfig | null;
+  username: string | null;
+  password: string | null;
+  credential_source: CredentialSource | null;
+  updated_at: string;
 }
 
 export interface TestRun {

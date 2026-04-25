@@ -5,6 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Test, TestStep } from "@/lib/supabase/types";
 import { WorkflowEditor } from "@/components/workflow/workflow-editor";
+import {
+  TestAuthDialog,
+  type SavedWorkflowAuth,
+} from "@/components/auth/test-auth-dialog";
+import { Button } from "@/components/ui/button";
+import { KeyRound } from "lucide-react";
+import { getAuthDescriptionForStrategy } from "@/lib/auth/workflow";
+import { v4 as uuidv4 } from "uuid";
 
 export default function TestEditorPage() {
   const params = useParams();
@@ -16,7 +24,48 @@ export default function TestEditorPage() {
   const [steps, setSteps] = useState<TestStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const syncAuthStep = useCallback((auth: SavedWorkflowAuth | null) => {
+    setSteps((currentSteps) => {
+      const nonAuthSteps = currentSteps.filter((step) => step.type !== "auth");
+      if (!auth) {
+        return nonAuthSteps;
+      }
+
+      const authStep = currentSteps.find((step) => step.type === "auth");
+      const persistedCredentials =
+        auth.config.strategy === "create_every_run"
+          ? null
+          : auth.credentials ?? authStep?.authCredentials ?? null;
+      const persistedCredentialSource =
+        auth.config.strategy === "create_every_run"
+          ? null
+          : auth.credentialSource ?? authStep?.credentialSource ?? null;
+      const nextAuthStep: TestStep = authStep
+        ? {
+            ...authStep,
+            description: getAuthDescriptionForStrategy(auth.config),
+            authConfig: auth.config,
+            authCredentials: persistedCredentials,
+            credentialSource: persistedCredentialSource,
+          }
+        : {
+            id: uuidv4(),
+            type: "auth",
+            description: getAuthDescriptionForStrategy(auth.config),
+            authConfig: auth.config,
+            authCredentials: persistedCredentials,
+            credentialSource: persistedCredentialSource,
+            compileStatus: "compiled",
+            compileNotes: `Workflow auth strategy: ${auth.config.strategy}`,
+            fallbackPolicy: "none",
+          };
+
+      return [nextAuthStep, ...nonAuthSteps];
+    });
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -94,6 +143,22 @@ export default function TestEditorPage() {
         onSave={handleSave}
         onRun={handleRun}
         saving={saving}
+        toolbarActions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAuthDialogOpen(true)}
+          >
+            <KeyRound className="h-4 w-4 mr-2" />
+            Test Auth
+          </Button>
+        }
+      />
+      <TestAuthDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+        testId={testId}
+        onSaved={syncAuthStep}
       />
     </div>
   );

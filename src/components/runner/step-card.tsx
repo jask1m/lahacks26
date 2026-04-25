@@ -10,6 +10,7 @@ import {
   SkipForward,
   Sparkles,
   ShieldCheck,
+  KeyRound,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -30,12 +31,39 @@ const statusIcons = {
   skipped: <SkipForward className="h-5 w-5 text-muted-foreground" />,
 };
 
+interface ParsedRunDetails {
+  summary: string;
+  mode?: "auth" | "compiled" | "fallback";
+  fallbackUsed?: boolean;
+  compileStatus?: "pending" | "compiled" | "failed";
+  compileNotes?: string;
+  completed?: string[];
+  failure?: string;
+  raw?: string;
+}
+
+function parseRunDetails(details: string | null | undefined): ParsedRunDetails | null {
+  if (!details) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(details) as ParsedRunDetails;
+    if (typeof parsed.summary === "string") {
+      return parsed;
+    }
+  } catch {}
+
+  return { summary: details, raw: details };
+}
+
 export function StepCard({ step, runStep, index }: StepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [rawOpen, setRawOpen] = useState(false);
   const status = runStep?.status || "pending";
   const errorReport =
     status === "failed" ? tryParseErrorReport(runStep?.details) : null;
+  const parsedDetails = parseRunDetails(runStep?.details);
 
   return (
     <div
@@ -59,17 +87,41 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
               className={`shrink-0 text-xs ${
                 step.type === "act"
                   ? "border-indigo-200 text-indigo-700 bg-indigo-50"
+                  : step.type === "auth"
+                  ? "border-amber-200 text-amber-800 bg-amber-50"
                   : "border-green-200 text-green-700 bg-green-50"
               }`}
             >
               {step.type === "act" ? (
                 <Sparkles className="h-3 w-3 mr-1" />
+              ) : step.type === "auth" ? (
+                <KeyRound className="h-3 w-3 mr-1" />
               ) : (
                 <ShieldCheck className="h-3 w-3 mr-1" />
               )}
-              {step.type === "act" ? "Act" : "Assert"}
+              {step.type === "act"
+                ? "Act"
+                : step.type === "auth"
+                ? "Auth"
+                : "Assert"}
             </Badge>
+            {parsedDetails?.mode && parsedDetails.mode !== "auth" && (
+              <Badge
+                variant="outline"
+                className={
+                  parsedDetails.mode === "fallback"
+                    ? "border-amber-200 text-amber-800 bg-amber-50"
+                    : "border-slate-200 text-slate-700 bg-slate-50"
+                }
+              >
+                {parsedDetails.mode === "fallback" ? "Fallback" : "Compiled"}
+              </Badge>
+            )}
           </div>
+
+          {parsedDetails?.summary && (
+            <p className="text-xs text-muted-foreground">{parsedDetails.summary}</p>
+          )}
 
           {runStep?.details && (
             <button
@@ -134,6 +186,29 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
                       </pre>
                     )}
                   </section>
+                )}
+              </div>
+            ) : parsedDetails ? (
+              <div className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap bg-muted/50 rounded p-2 space-y-2">
+                {parsedDetails.compileNotes && (
+                  <p>Compile notes: {parsedDetails.compileNotes}</p>
+                )}
+                {parsedDetails.completed && parsedDetails.completed.length > 0 && (
+                  <div>
+                    <p className="font-medium text-foreground/80">Completed</p>
+                    <pre className="whitespace-pre-wrap">
+                      {parsedDetails.completed.join("\n")}
+                    </pre>
+                  </div>
+                )}
+                {parsedDetails.failure && (
+                  <div>
+                    <p className="font-medium text-red-700">Failure</p>
+                    <pre className="whitespace-pre-wrap">{parsedDetails.failure}</pre>
+                  </div>
+                )}
+                {parsedDetails.raw && (
+                  <pre className="whitespace-pre-wrap">{parsedDetails.raw}</pre>
                 )}
               </div>
             ) : (

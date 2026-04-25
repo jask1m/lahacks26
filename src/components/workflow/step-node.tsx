@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ShieldCheck, X } from "lucide-react";
+import { Sparkles, ShieldCheck, KeyRound, X } from "lucide-react";
 import { TestStep } from "@/lib/supabase/types";
 
 interface StepNodeProps {
@@ -39,6 +39,7 @@ export function StepNode({ step, onEdit, onDelete, autoFocus }: StepNodeProps) {
   }
 
   const isAct = step.type === "act";
+  const isAuth = step.type === "auth";
 
   return (
     <div
@@ -56,15 +57,19 @@ export function StepNode({ step, onEdit, onDelete, autoFocus }: StepNodeProps) {
           className={`shrink-0 mt-0.5 ${
             isAct
               ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-100"
+              : isAuth
+              ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
               : "bg-green-100 text-green-700 hover:bg-green-100"
           }`}
         >
           {isAct ? (
             <Sparkles className="h-3 w-3 mr-1" />
+          ) : isAuth ? (
+            <KeyRound className="h-3 w-3 mr-1" />
           ) : (
             <ShieldCheck className="h-3 w-3 mr-1" />
           )}
-          {isAct ? "Act" : "Assert"}
+          {isAct ? "Act" : isAuth ? "Auth" : "Assert"}
         </Badge>
 
         {editing ? (

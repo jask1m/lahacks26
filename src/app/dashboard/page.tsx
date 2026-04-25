@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Project } from "@/lib/supabase/types";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
+import { DeleteProjectDialog } from "@/components/dashboard/delete-project-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Store } from "lucide-react";
@@ -14,6 +15,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -101,7 +103,11 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onDelete={setProjectToDelete}
+            />
           ))}
         </div>
       )}
@@ -111,6 +117,18 @@ export default function DashboardPage() {
         onOpenChange={setDialogOpen}
         onCreated={loadProjects}
       />
+
+      {projectToDelete && (
+        <DeleteProjectDialog
+          open={!!projectToDelete}
+          onOpenChange={(open) => !open && setProjectToDelete(null)}
+          project={projectToDelete}
+          onDeleted={() => {
+            setProjectToDelete(null);
+            loadProjects();
+          }}
+        />
+      )}
     </div>
   );
 }

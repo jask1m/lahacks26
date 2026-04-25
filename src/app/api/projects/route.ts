@@ -14,8 +14,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { url } = await req.json();
-    const normalizedProject = normalizeProjectUrl(url);
+    const { url, projectName } = await req.json();
+    const normalizedProject = normalizeProjectUrl(url, projectName);
 
     let { data, error } = await supabase
       .from("projects")
@@ -47,6 +47,14 @@ export async function POST(req: Request) {
     }
 
     if (error) {
+      const isUniqueViolation =
+        error.code === "23505" || error.message?.includes("unique");
+      if (isUniqueViolation) {
+        return NextResponse.json(
+          { error: "A project with this name already exists" },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

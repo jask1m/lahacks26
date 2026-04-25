@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateTestDialog } from "@/components/dashboard/create-test-dialog";
+import { DeleteTestDialog } from "@/components/dashboard/delete-test-dialog";
 import { getProjectExecutionModeFromString } from "@/lib/projects/url";
-import { ArrowLeft, Plus, FlaskConical } from "lucide-react";
+import { ArrowLeft, Plus, FlaskConical, Trash2 } from "lucide-react";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function ProjectDetailPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [testToDelete, setTestToDelete] = useState<Test | null>(null);
 
   async function loadData() {
     const [{ data: proj }, { data: testData }] = await Promise.all([
@@ -114,12 +116,27 @@ export default function ProjectDetailPage() {
                   {test.steps.map((step) => (
                     <Badge
                       key={step.id}
-                      variant={step.type === "act" ? "default" : "secondary"}
+                      variant={
+                        step.type === "act"
+                          ? "default"
+                          : step.type === "assert"
+                          ? "secondary"
+                          : "outline"
+                      }
                       className="text-xs"
                     >
                       {step.type}
                     </Badge>
                   ))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTestToDelete(test);
+                    }}
+                    className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             </Card>
@@ -136,6 +153,18 @@ export default function ProjectDetailPage() {
           router.push(`/dashboard/projects/${projectId}/tests/${testId}`);
         }}
       />
+
+      {testToDelete && (
+        <DeleteTestDialog
+          open={!!testToDelete}
+          onOpenChange={(open) => !open && setTestToDelete(null)}
+          test={testToDelete}
+          onDeleted={() => {
+            setTestToDelete(null);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

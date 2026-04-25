@@ -11,7 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Globe } from "lucide-react";
+import { Globe, FolderOpen } from "lucide-react";
+import { isLocalUrl } from "@/lib/projects/url";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -25,12 +26,16 @@ export function CreateProjectDialog({
   onCreated,
 }: CreateProjectDialogProps) {
   const [url, setUrl] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isLocal = isLocalUrl(url);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
+    if (isLocal && !projectName.trim()) return;
 
     setLoading(true);
     setError(null);
@@ -38,7 +43,7 @@ export function CreateProjectDialog({
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, projectName: projectName.trim() || undefined }),
       });
 
       if (!res.ok) {
@@ -49,6 +54,7 @@ export function CreateProjectDialog({
       }
 
       setUrl("");
+      setProjectName("");
       setError(null);
       onOpenChange(false);
       onCreated();
@@ -94,11 +100,31 @@ export function CreateProjectDialog({
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="projectName">
+              Project Name{isLocal && <span className="text-red-500"> *</span>}
+            </Label>
+            <div className="relative">
+              <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="projectName"
+                placeholder={isLocal ? "my-app" : "Optional"}
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {isLocal && (
+              <p className="text-xs text-muted-foreground">
+                Required for local URLs to distinguish between projects
+              </p>
+            )}
+          </div>
           {error ? (
             <p className="text-sm text-red-600">{error}</p>
           ) : null}
           <div className="flex justify-end">
-            <Button type="submit" disabled={loading || !url.trim()}>
+            <Button type="submit" disabled={loading || !url.trim() || (isLocal && !projectName.trim())}>
               {loading ? "Creating..." : "Create Project"}
             </Button>
           </div>
