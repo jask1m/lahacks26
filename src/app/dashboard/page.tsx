@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Project } from "@/lib/supabase/types";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Store } from "lucide-react";
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -39,6 +41,27 @@ export default function DashboardPage() {
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
+      </div>
+
+      <div className="mb-6">
+        <p className="text-sm font-medium mb-2">Quick Links</p>
+        <Link href="/demo-store">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                  <Store className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-base">Demo Store</CardTitle>
+                  <CardDescription>
+                    Ecommerce UI surface for automated QA testing
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
 
       {loading ? (
