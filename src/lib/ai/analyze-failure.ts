@@ -96,6 +96,32 @@ export async function analyzeStepFailure(
 }
 
 /**
+ * Returns true when the first test step's description already represents a
+ * navigation to the project URL (so we shouldn't separately prepend a
+ * "Navigate to <projectUrl>." line in the repro list).
+ */
+function firstStepIsNavigation(
+  firstStep: { description?: string } | undefined,
+  projectUrl: string
+): boolean {
+  if (!firstStep?.description) return false;
+  const desc = firstStep.description.trim().toLowerCase();
+  if (!desc) return false;
+  if (desc.startsWith("navigate") || desc.startsWith("go to") || desc.startsWith("open ")) {
+    return true;
+  }
+  if (projectUrl) {
+    try {
+      const host = new URL(projectUrl).hostname.toLowerCase();
+      if (host && desc.includes(host)) return true;
+    } catch {
+      // Invalid URL — fall through to false.
+    }
+  }
+  return false;
+}
+
+/**
  * Deterministic fallback used when the analyzer itself errors or times out.
  * Produces a best-effort repro list from the test steps themselves so the UI
  * still shows useful structured content.
@@ -105,7 +131,10 @@ export function buildFallbackAnalysis(
   reason: "timeout" | "error" | "internal" = "error"
 ): FailureAnalysis {
   const prefix: string[] = [];
-  if (ctx.projectUrl) {
+  // Only prepend a synthetic navigation line when the first step doesn't
+  // already describe one — otherwise the repro reads "Navigate to X. Navigate
+  // to X. ..." with the same line twice.
+  if (ctx.projectUrl && !firstStepIsNavigation(ctx.steps[0], ctx.projectUrl)) {
     prefix.push(`Navigate to ${ctx.projectUrl}.`);
   }
 

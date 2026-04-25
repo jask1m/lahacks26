@@ -11,6 +11,8 @@ import {
   type ExecutableAction,
 } from "./actions";
 
+export type { ExecutableAction } from "./actions";
+
 const EXECUTOR_SYSTEM_PROMPT = `You are a Playwright automation expert. Given a failing step and a compact page snapshot, translate the step into a small sequence of concrete actions.
 
 Available actions:
@@ -43,6 +45,30 @@ export interface ExecutionResult {
   success: boolean;
   details: string;
   completedActions: string[];
+  /**
+   * Populated when `success` is false. The translated action that triggered
+   * the failure. Engine code uses this to build a structured failure report.
+   */
+  failingAction?: ExecutableAction;
+  /**
+   * Populated when `success` is false. The raw error message from the
+   * underlying action (e.g. Playwright timeout text), unwrapped from any
+   * wrapper messages added by the executor.
+   */
+  rawErrorMessage?: string;
+}
+
+/**
+ * Mutable reference shared between the engine and {@link executeActions} so
+ * the engine can recover what was being attempted when an unexpected error
+ * escapes (e.g. a JS error thrown outside the per-action try/catch).
+ *
+ * `executeActions` updates `lastAttempted` immediately before each action
+ * starts and appends to `completed` after each action succeeds.
+ */
+export interface ActionProgress {
+  lastAttempted: ExecutableAction | null;
+  completed: string[];
 }
 
 interface InputMetadata {
@@ -817,11 +843,13 @@ function buildFallbackSelectors(selector: string): string[] {
 
 export async function executeActions(
   page: Page,
-  actions: ExecutableAction[]
+  actions: ExecutableAction[],
+  progress?: ActionProgress
 ): Promise<ExecutionResult> {
   const results: string[] = [];
 
   for (const action of actions) {
+    if (progress) progress.lastAttempted = action;
     try {
       switch (action.action) {
         case "navigate":
@@ -954,14 +982,16 @@ export async function executeActions(
           break;
       }
     } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        details: `Failed at "${action.description}": ${message}`,
+        details: `Failed at "${action.description}": ${errMsg}`,
         completedActions: results,
         failingAction: action,
-        rawErrorMessage: err instanceof Error ? err.message : String(err),
+        rawErrorMessage: errMsg,
       };
     }
+    if (progress) progress.completed.push(results[results.length - 1]);
   }
 
   return {

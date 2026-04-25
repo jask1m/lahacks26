@@ -18,12 +18,15 @@ import {
   executeAuthStep,
   shouldUseFallback,
   translateStepWithFallback,
+  type ActionProgress,
+  type ExecutableAction,
 } from "./step-executor";
 import { uploadScreenshot } from "./screenshot";
 import { runEventBus } from "./event-bus";
 import {
   ERROR_REPORT_VERSION,
   serializeErrorReport,
+  truncateStack,
   type StructuredErrorReport,
 } from "./error-report";
 import {
@@ -229,10 +232,43 @@ async function failRunBeforeExecution(
   runEventBus.emit(runId, { type: "run", runStatus: "failed" });
 }
 
-async function runNonAuthStep(page: Page, step: TestStep) {
+async function capturePageState(page: Page): Promise<{ url: string; title: string }> {
+  let url = "";
+  let title = "";
+  try {
+    url = page.url();
+  } catch {
+    // Page may be closed; fall back to empty string.
+  }
+  try {
+    title = await page.title();
+  } catch {
+    // Same.
+  }
+  return { url, title };
+}
+
+function toFailingActionSummary(
+  action: ExecutableAction | null | undefined
+): FailingActionSummary | null {
+  if (!action) return null;
+  return {
+    description: action.description,
+    action: action.action,
+    selector: action.selector,
+    value: action.value,
+    url: action.url,
+  };
+}
+
+async function runNonAuthStep(
+  page: Page,
+  step: TestStep,
+  progress?: ActionProgress
+) {
   if (!step.compiledActions?.length) {
     const fallbackActions = await translateStepWithFallback(page, step);
-    const fallbackResult = await executeActions(page, fallbackActions);
+    const fallbackResult = await executeActions(page, fallbackActions, progress);
 
     return {
       success: fallbackResult.success,
@@ -245,10 +281,16 @@ async function runNonAuthStep(page: Page, step: TestStep) {
         completed: fallbackResult.completedActions,
         failure: fallbackResult.success ? undefined : fallbackResult.details,
       },
+      failingAction: fallbackResult.failingAction,
+      rawErrorMessage: fallbackResult.rawErrorMessage,
     };
   }
 
-  const compiledResult = await executeActions(page, step.compiledActions ?? []);
+  const compiledResult = await executeActions(
+    page,
+    step.compiledActions ?? [],
+    progress
+  );
 
   if (
     compiledResult.success ||
@@ -264,11 +306,13 @@ async function runNonAuthStep(page: Page, step: TestStep) {
         completed: compiledResult.completedActions,
         failure: compiledResult.success ? undefined : compiledResult.details,
       },
+      failingAction: compiledResult.failingAction,
+      rawErrorMessage: compiledResult.rawErrorMessage,
     };
   }
 
   const fallbackActions = await translateStepWithFallback(page, step);
-  const fallbackResult = await executeActions(page, fallbackActions);
+  const fallbackResult = await executeActions(page, fallbackActions, progress);
 
   return {
     success: fallbackResult.success,
@@ -281,6 +325,8 @@ async function runNonAuthStep(page: Page, step: TestStep) {
       completed: fallbackResult.completedActions,
       failure: fallbackResult.success ? undefined : fallbackResult.details,
     },
+    failingAction: fallbackResult.failingAction,
+    rawErrorMessage: fallbackResult.rawErrorMessage,
   };
 }
 
@@ -300,6 +346,12 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
       stepUpdate: { stepIndex: i, status: "running" },
     });
 
+    // Tracks the action that's currently mid-execution and the descriptions
+    // of actions that have already completed within this step. Read by the
+    // catch block below to populate the structured failure report when an
+    // unexpected error escapes the executor.
+    const progress: ActionProgress = { lastAttempted: null, completed: [] };
+
     try {
       const result =
         step.type === "auth"
@@ -314,6 +366,8 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
                       completed: [],
                       failure: "Project URL missing for auth execution.",
                     },
+                    failingAction: undefined,
+                    rawErrorMessage: undefined,
                   };
                 }
 
@@ -337,6 +391,8 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
                       failure:
                         "This workflow auth strategy needs credentials, but none are configured.",
                     },
+                    failingAction: undefined,
+                    rawErrorMessage: undefined,
                   };
                 }
 
@@ -372,6 +428,8 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
                     completed: authResult.completedActions,
                     failure: authResult.success ? undefined : authResult.details,
                   },
+                  failingAction: undefined,
+                  rawErrorMessage: authResult.success ? undefined : authResult.details,
                 };
               })()
             : {
@@ -383,8 +441,10 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
                   failure:
                     "This workflow includes an auth step, but no workflow auth config is available.",
                 },
+                failingAction: undefined,
+                rawErrorMessage: undefined,
               }
-          : await runNonAuthStep(page, step);
+          : await runNonAuthStep(page, step, progress);
 
       const screenshotBuffer = await page.screenshot();
       const screenshotUrl = await uploadScreenshot(
@@ -412,7 +472,33 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
           },
         });
       } else {
-        const details = formatStepDetails(result.metadata);
+        // Graceful failure path: build a structured cause/repro/fix report
+        // via the LLM analyzer instead of just persisting raw metadata. This
+        // is what the runner UI renders into the "How to reproduce / Why it
+        // failed / Proposed fix" sections.
+        const pageStateAtFailure = await capturePageState(page);
+        const failingActionSummary = toFailingActionSummary(
+          result.failingAction
+        );
+        const rawErrorMessage =
+          result.rawErrorMessage ??
+          result.metadata.failure ??
+          "Step failed without an error message";
+
+        const ctx: AnalyzeFailureContext = {
+          projectUrl: test.url ?? "",
+          testName: test.name,
+          testDescription: test.description,
+          steps: test.steps,
+          failingStepIndex: i,
+          completedActions: result.metadata.completed,
+          failingAction: failingActionSummary,
+          pageUrl: pageStateAtFailure.url,
+          pageTitle: pageStateAtFailure.title,
+          rawErrorMessage,
+        };
+        const report = await runAnalysisWithTimeout(ctx);
+        const details = serializeErrorReport(report);
 
         await setStepStatus(runId, i, {
           status: "failed",
@@ -436,11 +522,19 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
         break;
       }
     } catch (error) {
+      // Unexpected throw escaped the executor (e.g. a JS error in our own
+      // code, a Playwright connection drop, etc.). We still want to emit a
+      // structured cause/repro/fix report, but with extra `errorClass` and
+      // `stack` fields so triage can distinguish a JS bug (ReferenceError)
+      // from a website-level failure (TimeoutError).
       allPassed = false;
+      const errorObj = error instanceof Error ? error : null;
       const message =
-        error instanceof Error ? error.message : "Unknown step execution error";
+        errorObj?.message ?? (typeof error === "string" ? error : "Unknown step execution error");
+      const errorClass = errorObj?.name ?? "Error";
+      const stack = truncateStack(errorObj?.stack);
 
-      console.error(`Step ${i} error:`, error);
+      console.error(`Step ${i} error [${errorClass}]:`, error);
 
       let screenshotUrl: string | null = null;
       try {
@@ -454,34 +548,28 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
         // Page may be in a broken state; skip screenshot silently.
       }
 
-      let pageUrlAtFailure = "";
-      let pageTitleAtFailure = "";
-      try {
-        pageUrlAtFailure = page.url();
-      } catch {}
-      try {
-        pageTitleAtFailure = await page.title();
-      } catch {}
+      const pageStateAtFailure = await capturePageState(page);
+      const failingActionSummary = toFailingActionSummary(progress.lastAttempted);
 
-      const fallbackCtx: AnalyzeFailureContext = {
+      const ctx: AnalyzeFailureContext = {
         projectUrl: test.url ?? "",
         testName: test.name,
         testDescription: test.description,
         steps: test.steps,
         failingStepIndex: i,
-        completedActions: [],
-        failingAction: null,
-        pageUrl: pageUrlAtFailure,
-        pageTitle: pageTitleAtFailure,
-        rawErrorMessage: message,
+        completedActions: progress.completed,
+        failingAction: failingActionSummary,
+        pageUrl: pageStateAtFailure.url,
+        pageTitle: pageStateAtFailure.title,
+        rawErrorMessage: `${errorClass}: ${message}`,
       };
-      const fallback = buildFallbackAnalysis(fallbackCtx, "internal");
-      const report: StructuredErrorReport = {
-        version: ERROR_REPORT_VERSION,
-        ...fallback,
-        raw: message,
+      const report = await runAnalysisWithTimeout(ctx);
+      const reportWithMeta: StructuredErrorReport = {
+        ...report,
+        errorClass,
+        stack,
       };
-      const serialized = serializeErrorReport(report);
+      const serialized = serializeErrorReport(reportWithMeta);
 
       await setStepStatus(runId, i, {
         status: "failed",

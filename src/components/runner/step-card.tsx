@@ -1,7 +1,7 @@
 "use client";
 
 import { TestRunStep, TestStep } from "@/lib/supabase/types";
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { tryParseErrorReport } from "@/lib/execution/error-report";
 
@@ -138,37 +138,68 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
       {expanded && hasDetails && (
         <div className="pl-[42px] pr-[10px] pb-[9px]">
           {errorReport ? (
-            <div className="bg-bg-2 border border-border rounded-[7px] p-[9px_11px] text-[11px] leading-[1.55] space-y-2.5">
+            <div className="mt-2 space-y-3 text-xs">
+              {errorReport.errorClass && (
+                <span
+                  className="inline-flex items-center rounded border border-red-200 bg-red-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-red-700"
+                  title="JavaScript error class. Useful when triaging whether the failure was a code bug vs a website-level issue."
+                >
+                  {errorReport.errorClass}
+                </span>
+              )}
               <section>
-                <div className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] mb-1">How to reproduce</div>
-                <ol className="list-decimal pl-5 space-y-0.5 text-muted-foreground">
+                <div className="font-semibold text-foreground mb-1">
+                  How to reproduce
+                </div>
+                <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
                   {errorReport.repro.map((r, idx) => (
                     <li key={idx}>{r}</li>
                   ))}
                 </ol>
               </section>
               <section>
-                <div className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] mb-1">Why it failed</div>
-                <p className="text-muted-foreground whitespace-pre-wrap">{errorReport.cause}</p>
+                <div className="font-semibold text-foreground mb-1">
+                  Why it failed
+                </div>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {errorReport.cause}
+                </p>
               </section>
               <section>
-                <div className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] mb-1">Proposed fix</div>
-                <p className="text-muted-foreground whitespace-pre-wrap">{errorReport.fix}</p>
+                <div className="font-semibold text-foreground mb-1">
+                  Proposed fix
+                </div>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {errorReport.fix}
+                </p>
               </section>
-              {errorReport.raw && (
+              {(errorReport.raw || errorReport.stack) && (
                 <section>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); setRawOpen((v) => !v); }}
+                    onClick={() => setRawOpen((v) => !v)}
                     className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
                   >
-                    <ChevronRight className={`h-3 w-3 transition-transform duration-150 ${rawOpen ? "rotate-90" : ""}`} />
+                    {rawOpen ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
                     {rawOpen ? "Hide raw error" : "Show raw error"}
                   </button>
                   {rawOpen && (
-                    <pre className="mt-2 whitespace-pre-wrap bg-bg-3 rounded p-2 text-muted-foreground text-[10px]">
-                      {errorReport.raw}
-                    </pre>
+                    <div className="mt-2 space-y-2">
+                      {errorReport.raw && (
+                        <pre className="whitespace-pre-wrap bg-muted/50 rounded p-2 text-muted-foreground">
+                          {errorReport.raw}
+                        </pre>
+                      )}
+                      {errorReport.stack && (
+                        <pre className="whitespace-pre-wrap bg-muted/50 rounded p-2 text-[10px] text-muted-foreground">
+                          {errorReport.stack}
+                        </pre>
+                      )}
+                    </div>
                   )}
                 </section>
               )}
