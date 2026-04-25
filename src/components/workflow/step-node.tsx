@@ -30,7 +30,6 @@ export function StepNode({ step, onEdit, onDelete, autoFocus }: StepNodeProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local text when parent description changes
     setText(step.description);
   }, [step.description]);
 

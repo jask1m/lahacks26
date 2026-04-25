@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Project, Test } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Topbar } from "@/components/dashboard/topbar";
 import { CreateTestDialog } from "@/components/dashboard/create-test-dialog";
 import { DeleteTestDialog } from "@/components/dashboard/delete-test-dialog";

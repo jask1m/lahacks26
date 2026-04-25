@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { KeyRound, X } from "lucide-react";
+import { X } from "lucide-react";
 import { TestStep } from "@/lib/supabase/types";
 import { useEffect, useRef, useState } from "react";
 
