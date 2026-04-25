@@ -1075,7 +1075,7 @@ export async function executeActions(
       const message = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        details: `Failed at "${action.description}": ${message}`,
+        details: `Failed at "${action.description}": ${err instanceof Error ? err.message : String(err)}`,
         completedActions: results,
         failingAction: action,
         rawErrorMessage: message,
