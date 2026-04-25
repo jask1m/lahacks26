@@ -22,6 +22,7 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<ViewportState>({ x: 0, y: 0, scale: 1 });
+  const [isPanningState, setIsPanningState] = useState(false);
   const panState = useRef<{ isPanning: boolean; startX: number; startY: number; startTx: number; startTy: number }>({
     isPanning: false,
     startX: 0,
@@ -94,6 +95,7 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
         startTx: viewport.x,
         startTy: viewport.y,
       };
+      setIsPanningState(true);
 
       e.preventDefault();
     },
@@ -115,6 +117,7 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
 
     const handleMouseUp = () => {
       panState.current.isPanning = false;
+      setIsPanningState(false);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -134,7 +137,7 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
     return () => el.removeEventListener("wheel", prevent);
   }, []);
 
-  const isPanning = panState.current.isPanning;
+  const isPanning = isPanningState;
 
   return (
     <div className={`${className ?? ""} p-4`}>
