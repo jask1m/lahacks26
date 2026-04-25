@@ -7,6 +7,7 @@ import { AddNodeButton } from "./add-node-button";
 import { AddStepModal } from "./add-step-modal";
 import { Button } from "@/components/ui/button";
 import { Play, Save, CheckCircle2 } from "lucide-react";
+import { CanvasViewport } from "./canvas-viewport";
 import { v4 as uuidv4 } from "uuid";
 
 interface WorkflowEditorProps {
@@ -92,9 +93,9 @@ export function WorkflowEditor({
         </div>
       </div>
 
-      {/* Scrollable workflow area */}
-      <div className="flex-1 overflow-y-auto bg-bg-0">
-        <div className="flex flex-col items-center py-10 px-4">
+      {/* Canvas workflow area */}
+      <CanvasViewport className="flex-1 bg-bg-0">
+        <div className="flex flex-col items-center py-10 px-4" data-no-pan>
           {/* Trigger */}
           <div className="flex items-center gap-2.5 px-[18px] py-2.5 bg-bg-2 border border-dashed border-border-highlight rounded-3xl text-[12.5px] text-muted-foreground max-w-[520px] w-full">
             <svg width="13" height="13" viewBox="0 0 15 15" fill="none">
@@ -128,7 +129,7 @@ export function WorkflowEditor({
             <span className="text-sm text-muted-foreground">End</span>
           </div>
         </div>
-      </div>
+      </CanvasViewport>
 
       {/* Add step modal */}
       <AddStepModal
