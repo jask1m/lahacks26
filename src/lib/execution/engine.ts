@@ -30,44 +30,9 @@ import {
   type StructuredErrorReport,
 } from "./error-report";
 import {
-  analyzeStepFailure,
   buildFallbackAnalysis,
   type AnalyzeFailureContext,
-  type FailingActionSummary,
 } from "@/lib/ai/analyze-failure";
-
-const FAILURE_ANALYSIS_TIMEOUT_MS = 15_000;
-
-async function runAnalysisWithTimeout(
-  ctx: AnalyzeFailureContext
-): Promise<StructuredErrorReport> {
-  const rawForReport = ctx.completedActions.length
-    ? `${ctx.rawErrorMessage}\n\nCompleted before failure:\n- ${ctx.completedActions.join(
-        "\n- "
-      )}`
-    : ctx.rawErrorMessage;
-
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<"__timeout__">((resolve) => {
-    timeoutHandle = setTimeout(() => resolve("__timeout__"), FAILURE_ANALYSIS_TIMEOUT_MS);
-  });
-
-  try {
-    const outcome = await Promise.race([analyzeStepFailure(ctx), timeoutPromise]);
-    if (outcome === "__timeout__") {
-      console.warn("Failure analysis timed out; using deterministic fallback.");
-      const fallback = buildFallbackAnalysis(ctx, "timeout");
-      return { version: ERROR_REPORT_VERSION, ...fallback, raw: rawForReport };
-    }
-    return { version: ERROR_REPORT_VERSION, ...outcome, raw: rawForReport };
-  } catch (err) {
-    console.error("Failure analysis errored; using deterministic fallback:", err);
-    const fallback = buildFallbackAnalysis(ctx, "error");
-    return { version: ERROR_REPORT_VERSION, ...fallback, raw: rawForReport };
-  } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle);
-  }
-}
 
 type BrowserLike = {
   close?: () => Promise<void>;
