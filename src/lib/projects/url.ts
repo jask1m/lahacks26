@@ -40,7 +40,20 @@ export function deriveProjectName(url: URL): string {
   return url.hostname.replace(/^www\./, "");
 }
 
-export function normalizeProjectUrl(input: string): NormalizedProjectUrl {
+export function isLocalUrl(input: string): boolean {
+  try {
+    const normalizedInput = withDefaultProtocol(input);
+    const parsedUrl = new URL(normalizedInput);
+    return LOCAL_HOSTNAMES.has(parsedUrl.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeProjectUrl(
+  input: string,
+  projectName?: string
+): NormalizedProjectUrl {
   const normalizedInput = withDefaultProtocol(input);
   const parsedUrl = new URL(normalizedInput);
 
@@ -54,8 +67,14 @@ export function normalizeProjectUrl(input: string): NormalizedProjectUrl {
     parsedUrl.protocol = "http:";
   }
 
+  if (executionMode === "local" && !projectName?.trim()) {
+    throw new Error("Project name is required for local development URLs");
+  }
+
+  const name = projectName?.trim() || deriveProjectName(parsedUrl);
+
   return {
-    name: deriveProjectName(parsedUrl),
+    name,
     url: parsedUrl.toString(),
     executionMode,
   };

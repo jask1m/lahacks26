@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-space-grotesk);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,9 +46,123 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Custom accent colors */
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-green: var(--accent-green);
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border-highlight: var(--border-highlight);
+
+  /* Canvas light theme tokens */
+  --color-canvas-bg: var(--canvas-bg);
+  --color-canvas-node-bg: var(--canvas-node-bg);
+  --color-canvas-text: var(--canvas-text);
+  --color-canvas-text-muted: var(--canvas-text-muted);
+  --color-canvas-border: var(--canvas-border);
+  --color-canvas-border-hover: var(--canvas-border-hover);
+  --color-canvas-connector: var(--canvas-connector);
 }
 
+/* Dark-first dashboard theme */
 :root {
+  --background: #0a0a0a;
+  --foreground: #e8e8f0;
+  --card: #111111;
+  --card-foreground: #e8e8f0;
+  --popover: #181818;
+  --popover-foreground: #e8e8f0;
+  --primary: oklch(0.68 0.18 255);
+  --primary-foreground: #ffffff;
+  --secondary: #181818;
+  --secondary-foreground: #e8e8f0;
+  --muted: #222222;
+  --muted-foreground: #9090a8;
+  --accent: #222222;
+  --accent-foreground: #e8e8f0;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgba(255,255,255,0.07);
+  --input: rgba(255,255,255,0.13);
+  --ring: oklch(0.68 0.18 255);
+  --chart-1: oklch(0.68 0.18 255);
+  --chart-2: oklch(0.7 0.16 162);
+  --chart-3: oklch(0.556 0 0);
+  --chart-4: oklch(0.439 0 0);
+  --chart-5: oklch(0.371 0 0);
+  --radius: 0.625rem;
+  --sidebar: #111111;
+  --sidebar-foreground: #e8e8f0;
+  --sidebar-primary: oklch(0.68 0.18 255);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #e8e8f0;
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-ring: oklch(0.68 0.18 255);
+
+  /* Custom design tokens */
+  --accent-blue: oklch(0.68 0.18 255);
+  --accent-green: oklch(0.7 0.16 162);
+  --bg-0: #0a0a0a;
+  --bg-1: #111111;
+  --bg-2: #181818;
+  --bg-3: #222222;
+  --text-tertiary: #5a5a72;
+  --border-highlight: rgba(255,255,255,0.13);
+
+  /* Canvas light theme */
+  --canvas-bg: #f8f8fb;
+  --canvas-node-bg: #ffffff;
+  --canvas-text: #1a1a2e;
+  --canvas-text-muted: rgba(0,0,0,0.3);
+  --canvas-border: rgba(0,0,0,0.09);
+  --canvas-border-hover: rgba(0,0,0,0.18);
+  --canvas-connector: rgba(0,0,0,0.14);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* Grid texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+/* Pulse animation for runner */
+@keyframes ta-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.animate-ta-pulse {
+  animation: ta-pulse 1.4s ease-in-out infinite;
+}
+
+/* Demo store light theme isolation */
+.demo-store-light {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -67,64 +181,8 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+.demo-store-light::before {
+  display: none;
 }

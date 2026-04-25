@@ -1,13 +1,24 @@
 import type { Page } from "playwright-core";
 import { chromium as remoteChromium } from "playwright-core";
+import {
+  generateQaCredentials,
+  persistGeneratedCredentials,
+} from "@/lib/auth/storage";
 import { supabase } from "@/lib/supabase/client";
-import { Test } from "@/lib/supabase/types";
+import type { ResolvedAuthConfig } from "@/lib/auth/types";
+import type { Test, TestStep } from "@/lib/supabase/types";
+import { COMPILE_VERSION, compileStepForExecution } from "@/lib/ai/generate-steps";
 import { createBrowserSession } from "@/lib/browserbase/session";
 import {
   isLocalExecutionEnabled,
   type ProjectExecutionMode,
 } from "@/lib/projects/url";
-import { translateStep, executeActions } from "./step-executor";
+import {
+  executeActions,
+  executeAuthStep,
+  shouldUseFallback,
+  translateStepWithFallback,
+} from "./step-executor";
 import { uploadScreenshot } from "./screenshot";
 import { runEventBus } from "./event-bus";
 import {
@@ -72,12 +83,42 @@ type BrowserLike = {
 type ExecutableTest = Test & {
   url?: string;
   executionMode?: ProjectExecutionMode;
+  resolvedAuthConfig?: ResolvedAuthConfig | null;
 };
 
 interface ExecutionRuntime {
   browser: BrowserLike;
   page: Page;
   liveViewUrl?: string;
+}
+
+interface StepExecutionMetadata {
+  mode: "auth" | "compiled" | "fallback";
+  fallbackUsed: boolean;
+  compileStatus?: TestStep["compileStatus"];
+  compileNotes?: string;
+  completed: string[];
+  failure?: string;
+}
+
+function formatStepDetails(metadata: StepExecutionMetadata) {
+  return JSON.stringify(
+    {
+      summary:
+        metadata.mode === "auth"
+          ? metadata.failure ?? "Authenticated with the configured auth flow."
+          : metadata.failure ??
+            `Executed via ${metadata.fallbackUsed ? "fallback recovery" : metadata.mode}.`,
+      mode: metadata.mode,
+      fallbackUsed: metadata.fallbackUsed,
+      compileStatus: metadata.compileStatus,
+      compileNotes: metadata.compileNotes,
+      completed: metadata.completed,
+      failure: metadata.failure,
+    },
+    null,
+    2
+  );
 }
 
 async function setRunStatus(
@@ -111,6 +152,41 @@ async function setStepStatus(
     .update(update)
     .eq("test_run_id", runId)
     .eq("step_index", stepIndex);
+}
+
+async function persistCompiledStep(test: ExecutableTest) {
+  await supabase.from("tests").update({ steps: test.steps }).eq("id", test.id);
+}
+
+async function ensureCompiledStep(test: ExecutableTest, stepIndex: number) {
+  const step = test.steps[stepIndex];
+
+  if (step.type === "auth") {
+    return step;
+  }
+
+  if (step.compiledActions?.length) {
+    return step;
+  }
+
+  if (!test.url) {
+    return step;
+  }
+
+  const compilation = await compileStepForExecution(test.url, step);
+  const updatedStep: TestStep = {
+    ...step,
+    compiledActions: compilation.compiledActions,
+    compileStatus: compilation.compileStatus ?? "pending",
+    compileVersion: COMPILE_VERSION,
+    compileNotes: compilation.compileNotes,
+    fallbackPolicy: step.fallbackPolicy ?? "llm_on_failure",
+  };
+
+  test.steps[stepIndex] = updatedStep;
+  await persistCompiledStep(test);
+
+  return updatedStep;
 }
 
 async function skipRemainingSteps(runId: string, startIndex: number, total: number) {
@@ -153,11 +229,66 @@ async function failRunBeforeExecution(
   runEventBus.emit(runId, { type: "run", runStatus: "failed" });
 }
 
+async function runNonAuthStep(page: Page, step: TestStep) {
+  if (!step.compiledActions?.length) {
+    const fallbackActions = await translateStepWithFallback(page, step);
+    const fallbackResult = await executeActions(page, fallbackActions);
+
+    return {
+      success: fallbackResult.success,
+      metadata: {
+        mode: "fallback" as const,
+        fallbackUsed: true,
+        compileStatus: step.compileStatus,
+        compileNotes:
+          step.compileNotes ?? "Compilation was unavailable, so runtime fallback was used.",
+        completed: fallbackResult.completedActions,
+        failure: fallbackResult.success ? undefined : fallbackResult.details,
+      },
+    };
+  }
+
+  const compiledResult = await executeActions(page, step.compiledActions ?? []);
+
+  if (
+    compiledResult.success ||
+    !shouldUseFallback(step, compiledResult.details, Boolean(step.compiledActions?.length))
+  ) {
+    return {
+      success: compiledResult.success,
+      metadata: {
+        mode: "compiled" as const,
+        fallbackUsed: false,
+        compileStatus: step.compileStatus,
+        compileNotes: step.compileNotes,
+        completed: compiledResult.completedActions,
+        failure: compiledResult.success ? undefined : compiledResult.details,
+      },
+    };
+  }
+
+  const fallbackActions = await translateStepWithFallback(page, step);
+  const fallbackResult = await executeActions(page, fallbackActions);
+
+  return {
+    success: fallbackResult.success,
+    metadata: {
+      mode: "fallback" as const,
+      fallbackUsed: true,
+      compileStatus: step.compileStatus,
+      compileNotes:
+        step.compileNotes ?? "Runtime fallback used a compact page snapshot.",
+      completed: fallbackResult.completedActions,
+      failure: fallbackResult.success ? undefined : fallbackResult.details,
+    },
+  };
+}
+
 async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
   let allPassed = true;
 
   for (let i = 0; i < test.steps.length; i++) {
-    const step = test.steps[i];
+    const step = await ensureCompiledStep(test, i);
 
     await setStepStatus(runId, i, {
       status: "running",
@@ -170,17 +301,91 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
     });
 
     try {
-      const pageUrl = page.url();
-      const pageTitle = await page.title();
-      let pageContent = "";
-      try {
-        pageContent = await page.evaluate(() => document.body.innerText);
-      } catch {
-        pageContent = "";
-      }
+      const result =
+        step.type === "auth"
+          ? test.resolvedAuthConfig
+            ? await (async () => {
+                if (!test.url) {
+                  return {
+                    success: false,
+                    metadata: {
+                      mode: "auth" as const,
+                      fallbackUsed: false,
+                      completed: [],
+                      failure: "Project URL missing for auth execution.",
+                    },
+                  };
+                }
 
-      const actions = await translateStep(step, pageUrl, pageTitle, pageContent);
-      const result = await executeActions(page, actions);
+                const shouldGenerateCredentials =
+                  test.resolvedAuthConfig!.config.strategy !== "existing_login";
+                const hadStoredCredentials = Boolean(
+                  test.resolvedAuthConfig!.credentials
+                );
+                const credentials =
+                  shouldGenerateCredentials && !hadStoredCredentials
+                    ? generateQaCredentials(test.url)
+                    : test.resolvedAuthConfig!.credentials;
+
+                if (!credentials) {
+                  return {
+                    success: false,
+                    metadata: {
+                      mode: "auth" as const,
+                      fallbackUsed: false,
+                      completed: [],
+                      failure:
+                        "This workflow auth strategy needs credentials, but none are configured.",
+                    },
+                  };
+                }
+
+                const authResult = await executeAuthStep(
+                  page,
+                  {
+                    authConfig: test.resolvedAuthConfig!,
+                    websiteUrl: test.url,
+                    credentials,
+                  }
+                );
+
+                if (
+                  authResult.success &&
+                  test.resolvedAuthConfig!.config.strategy ===
+                    "create_then_remember" &&
+                  !hadStoredCredentials
+                ) {
+                  await persistGeneratedCredentials(test.id, credentials);
+                  test.resolvedAuthConfig = {
+                    ...test.resolvedAuthConfig!,
+                    credentials,
+                    usernameHint: credentials.username,
+                    credentialSource: "generated",
+                  };
+                }
+
+                return {
+                  success: authResult.success,
+                  metadata: {
+                    mode: "auth" as const,
+                    fallbackUsed: false,
+                    completed: authResult.completedActions,
+                    failure: authResult.success ? undefined : authResult.details,
+                  },
+                };
+              })()
+            : {
+                success: false,
+                metadata: {
+                  mode: "auth" as const,
+                  fallbackUsed: false,
+                  completed: [],
+                  failure:
+                    "This workflow includes an auth step, but no workflow auth config is available.",
+                },
+              }
+          : await runNonAuthStep(page, step);
+
       const screenshotBuffer = await page.screenshot();
       const screenshotUrl = await uploadScreenshot(
         runId,
@@ -189,10 +394,11 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
       );
 
       if (result.success) {
+        const details = formatStepDetails(result.metadata);
         await setStepStatus(runId, i, {
           status: "passed",
           screenshot_url: screenshotUrl,
-          details: result.details,
+          details,
           completed_at: new Date().toISOString(),
         });
 
@@ -202,52 +408,16 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
             stepIndex: i,
             status: "passed",
             screenshotUrl: screenshotUrl || undefined,
-            details: result.details,
+            details,
           },
         });
       } else {
-        const failingActionSummary: FailingActionSummary = {
-          description: result.failingAction.description,
-          action: result.failingAction.action,
-          selector: result.failingAction.selector,
-          value: result.failingAction.value,
-          url: result.failingAction.url,
-        };
-
-        const pageUrlAtFailure = (() => {
-          try {
-            return page.url();
-          } catch {
-            return pageUrl;
-          }
-        })();
-        const pageTitleAtFailure = await (async () => {
-          try {
-            return await page.title();
-          } catch {
-            return pageTitle;
-          }
-        })();
-
-        const report = await runAnalysisWithTimeout({
-          projectUrl: test.url ?? "",
-          testName: test.name,
-          testDescription: test.description,
-          steps: test.steps,
-          failingStepIndex: i,
-          completedActions: result.completedActions,
-          failingAction: failingActionSummary,
-          pageUrl: pageUrlAtFailure,
-          pageTitle: pageTitleAtFailure,
-          rawErrorMessage: result.rawErrorMessage,
-        });
-
-        const serialized = serializeErrorReport(report);
+        const details = formatStepDetails(result.metadata);
 
         await setStepStatus(runId, i, {
           status: "failed",
           screenshot_url: screenshotUrl,
-          details: serialized,
+          details,
           completed_at: new Date().toISOString(),
         });
 
@@ -257,7 +427,7 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
             stepIndex: i,
             status: "failed",
             screenshotUrl: screenshotUrl || undefined,
-            details: serialized,
+            details,
           },
         });
 
@@ -343,16 +513,12 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
 async function createLocalBrowser(): Promise<ExecutionRuntime> {
   let localChromium;
   try {
-    // Lazy-load: the full `playwright` package is only needed for local
-    // execution. Keeping this import static would break builds/runs for
-    // users who only use Browserbase (remote) mode and haven't installed it.
-    // `playwright` is in Next.js's auto-external list so it uses native
-    // require at runtime (see serverExternalPackages docs).
-    // @ts-expect-error -- optional peer dep; may not be installed
-    ({ chromium: localChromium } = await import("playwright"));
+    // Lazy-load so createLocalBrowser() doesn't run at import time for
+    // users who only use Browserbase (remote) mode.
+    ({ chromium: localChromium } = await import("playwright-core"));
   } catch {
     throw new Error(
-      "Local execution requires the `playwright` package. Install it with `npm install playwright` and run `npx playwright install chromium`, or switch this project to Browserbase mode."
+      "Local execution requires browser binaries. Run `npx playwright install chromium`, or switch this project to Browserbase mode."
     );
   }
 

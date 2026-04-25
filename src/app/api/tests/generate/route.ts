@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
 import { generateTestSteps } from "@/lib/ai/generate-steps";
+import { getDefaultWorkflowAuthConfig } from "@/lib/auth/workflow";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: Request) {
@@ -15,12 +16,23 @@ export async function POST(req: Request) {
     }
 
     // Generate steps using AI
-    const rawSteps = await generateTestSteps(websiteUrl, description);
+    const rawSteps = await generateTestSteps(
+      websiteUrl,
+      description,
+      false
+    );
 
     // Add IDs to each step
     const steps = rawSteps.map((step) => ({
       id: uuidv4(),
       ...step,
+      ...(step.type === "auth"
+        ? {
+            authConfig: getDefaultWorkflowAuthConfig(step.description),
+            authCredentials: null,
+            credentialSource: null,
+          }
+        : {}),
     }));
 
     // Derive a short name from the description
