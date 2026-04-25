@@ -57,7 +57,7 @@ export default function OrdersPage() {
     )
   }
 
-  const handleReorder = (orderId: string) => {
+  const handleReorder = () => {
     showToast('Items added to cart', 'success')
   }
 
