@@ -67,10 +67,25 @@ Translate this into concrete Playwright actions.`,
   return object.actions;
 }
 
+export type ExecutedAction = z.infer<typeof actionSchema>["actions"][number];
+
+export type ExecuteActionsResult =
+  | {
+      success: true;
+      details: string;
+      completedActions: string[];
+    }
+  | {
+      success: false;
+      completedActions: string[];
+      failingAction: ExecutedAction;
+      rawErrorMessage: string;
+    };
+
 export async function executeActions(
   page: Page,
-  actions: z.infer<typeof actionSchema>["actions"]
-): Promise<{ success: boolean; details: string }> {
+  actions: ExecutedAction[]
+): Promise<ExecuteActionsResult> {
   const results: string[] = [];
 
   for (const action of actions) {
@@ -137,11 +152,12 @@ export async function executeActions(
           results.push("Scrolled down");
           break;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown action error";
+    } catch (err: any) {
       return {
         success: false,
-        details: `Failed at "${action.description}": ${message}\n\nCompleted: ${results.join(", ")}`,
+        completedActions: results,
+        failingAction: action,
+        rawErrorMessage: err?.message ?? String(err),
       };
     }
   }
@@ -149,5 +165,6 @@ export async function executeActions(
   return {
     success: true,
     details: results.join("\n"),
+    completedActions: results,
   };
 }

@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import { tryParseErrorReport } from "@/lib/execution/error-report";
 
 interface StepCardProps {
   step: TestStep;
@@ -31,7 +32,10 @@ const statusIcons = {
 
 export function StepCard({ step, runStep, index }: StepCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [rawOpen, setRawOpen] = useState(false);
   const status = runStep?.status || "pending";
+  const errorReport =
+    status === "failed" ? tryParseErrorReport(runStep?.details) : null;
 
   return (
     <div
@@ -82,9 +86,61 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
           )}
 
           {expanded && runStep?.details && (
-            <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap bg-muted/50 rounded p-2">
-              {runStep.details}
-            </pre>
+            errorReport ? (
+              <div className="mt-2 space-y-3 text-xs">
+                <section>
+                  <div className="font-semibold text-foreground mb-1">
+                    How to reproduce
+                  </div>
+                  <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                    {errorReport.repro.map((r, idx) => (
+                      <li key={idx}>{r}</li>
+                    ))}
+                  </ol>
+                </section>
+                <section>
+                  <div className="font-semibold text-foreground mb-1">
+                    Why it failed
+                  </div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">
+                    {errorReport.cause}
+                  </p>
+                </section>
+                <section>
+                  <div className="font-semibold text-foreground mb-1">
+                    Proposed fix
+                  </div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">
+                    {errorReport.fix}
+                  </p>
+                </section>
+                {errorReport.raw && (
+                  <section>
+                    <button
+                      type="button"
+                      onClick={() => setRawOpen((v) => !v)}
+                      className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    >
+                      {rawOpen ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                      {rawOpen ? "Hide raw error" : "Show raw error"}
+                    </button>
+                    {rawOpen && (
+                      <pre className="mt-2 whitespace-pre-wrap bg-muted/50 rounded p-2 text-muted-foreground">
+                        {errorReport.raw}
+                      </pre>
+                    )}
+                  </section>
+                )}
+              </div>
+            ) : (
+              <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap bg-muted/50 rounded p-2">
+                {runStep.details}
+              </pre>
+            )
           )}
 
           {runStep?.screenshot_url && (

@@ -1,4 +1,3 @@
-import { chromium as localChromium } from "playwright";
 import type { Page } from "playwright-core";
 import { chromium as remoteChromium } from "playwright-core";
 import { supabase } from "@/lib/supabase/client";
@@ -11,6 +10,50 @@ import {
 import { translateStep, executeActions } from "./step-executor";
 import { uploadScreenshot } from "./screenshot";
 import { runEventBus } from "./event-bus";
+import {
+  ERROR_REPORT_VERSION,
+  serializeErrorReport,
+  type StructuredErrorReport,
+} from "./error-report";
+import {
+  analyzeStepFailure,
+  buildFallbackAnalysis,
+  type AnalyzeFailureContext,
+  type FailingActionSummary,
+} from "@/lib/ai/analyze-failure";
+
+const FAILURE_ANALYSIS_TIMEOUT_MS = 15_000;
+
+async function runAnalysisWithTimeout(
+  ctx: AnalyzeFailureContext
+): Promise<StructuredErrorReport> {
+  const rawForReport = ctx.completedActions.length
+    ? `${ctx.rawErrorMessage}\n\nCompleted before failure:\n- ${ctx.completedActions.join(
+        "\n- "
+      )}`
+    : ctx.rawErrorMessage;
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<"__timeout__">((resolve) => {
+    timeoutHandle = setTimeout(() => resolve("__timeout__"), FAILURE_ANALYSIS_TIMEOUT_MS);
+  });
+
+  try {
+    const outcome = await Promise.race([analyzeStepFailure(ctx), timeoutPromise]);
+    if (outcome === "__timeout__") {
+      console.warn("Failure analysis timed out; using deterministic fallback.");
+      const fallback = buildFallbackAnalysis(ctx, "timeout");
+      return { version: ERROR_REPORT_VERSION, ...fallback, raw: rawForReport };
+    }
+    return { version: ERROR_REPORT_VERSION, ...outcome, raw: rawForReport };
+  } catch (err) {
+    console.error("Failure analysis errored; using deterministic fallback:", err);
+    const fallback = buildFallbackAnalysis(ctx, "error");
+    return { version: ERROR_REPORT_VERSION, ...fallback, raw: rawForReport };
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
 
 type BrowserLike = {
   close?: () => Promise<void>;
@@ -144,26 +187,80 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
         i,
         Buffer.from(screenshotBuffer)
       );
-      const status = result.success ? "passed" : "failed";
 
-      await setStepStatus(runId, i, {
-        status,
-        screenshot_url: screenshotUrl,
-        details: result.details,
-        completed_at: new Date().toISOString(),
-      });
-
-      runEventBus.emit(runId, {
-        type: "step",
-        stepUpdate: {
-          stepIndex: i,
-          status,
-          screenshotUrl: screenshotUrl || undefined,
+      if (result.success) {
+        await setStepStatus(runId, i, {
+          status: "passed",
+          screenshot_url: screenshotUrl,
           details: result.details,
-        },
-      });
+          completed_at: new Date().toISOString(),
+        });
 
-      if (!result.success) {
+        runEventBus.emit(runId, {
+          type: "step",
+          stepUpdate: {
+            stepIndex: i,
+            status: "passed",
+            screenshotUrl: screenshotUrl || undefined,
+            details: result.details,
+          },
+        });
+      } else {
+        const failingActionSummary: FailingActionSummary = {
+          description: result.failingAction.description,
+          action: result.failingAction.action,
+          selector: result.failingAction.selector,
+          value: result.failingAction.value,
+          url: result.failingAction.url,
+        };
+
+        const pageUrlAtFailure = (() => {
+          try {
+            return page.url();
+          } catch {
+            return pageUrl;
+          }
+        })();
+        const pageTitleAtFailure = await (async () => {
+          try {
+            return await page.title();
+          } catch {
+            return pageTitle;
+          }
+        })();
+
+        const report = await runAnalysisWithTimeout({
+          projectUrl: test.url ?? "",
+          testName: test.name,
+          testDescription: test.description,
+          steps: test.steps,
+          failingStepIndex: i,
+          completedActions: result.completedActions,
+          failingAction: failingActionSummary,
+          pageUrl: pageUrlAtFailure,
+          pageTitle: pageTitleAtFailure,
+          rawErrorMessage: result.rawErrorMessage,
+        });
+
+        const serialized = serializeErrorReport(report);
+
+        await setStepStatus(runId, i, {
+          status: "failed",
+          screenshot_url: screenshotUrl,
+          details: serialized,
+          completed_at: new Date().toISOString(),
+        });
+
+        runEventBus.emit(runId, {
+          type: "step",
+          stepUpdate: {
+            stepIndex: i,
+            status: "failed",
+            screenshotUrl: screenshotUrl || undefined,
+            details: serialized,
+          },
+        });
+
         allPassed = false;
         await skipRemainingSteps(runId, i + 1, test.steps.length);
         break;
@@ -175,9 +272,51 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
 
       console.error(`Step ${i} error:`, error);
 
+      let screenshotUrl: string | null = null;
+      try {
+        const screenshotBuffer = await page.screenshot();
+        screenshotUrl = await uploadScreenshot(
+          runId,
+          i,
+          Buffer.from(screenshotBuffer)
+        );
+      } catch {
+        // Page may be in a broken state; skip screenshot silently.
+      }
+
+      let pageUrlAtFailure = "";
+      let pageTitleAtFailure = "";
+      try {
+        pageUrlAtFailure = page.url();
+      } catch {}
+      try {
+        pageTitleAtFailure = await page.title();
+      } catch {}
+
+      const fallbackCtx: AnalyzeFailureContext = {
+        projectUrl: test.url ?? "",
+        testName: test.name,
+        testDescription: test.description,
+        steps: test.steps,
+        failingStepIndex: i,
+        completedActions: [],
+        failingAction: null,
+        pageUrl: pageUrlAtFailure,
+        pageTitle: pageTitleAtFailure,
+        rawErrorMessage: message,
+      };
+      const fallback = buildFallbackAnalysis(fallbackCtx, "internal");
+      const report: StructuredErrorReport = {
+        version: ERROR_REPORT_VERSION,
+        ...fallback,
+        raw: message,
+      };
+      const serialized = serializeErrorReport(report);
+
       await setStepStatus(runId, i, {
         status: "failed",
-        details: message,
+        screenshot_url: screenshotUrl,
+        details: serialized,
         completed_at: new Date().toISOString(),
       });
 
@@ -186,7 +325,8 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
         stepUpdate: {
           stepIndex: i,
           status: "failed",
-          details: message,
+          screenshotUrl: screenshotUrl || undefined,
+          details: serialized,
         },
       });
 
@@ -201,6 +341,21 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
 }
 
 async function createLocalBrowser(): Promise<ExecutionRuntime> {
+  let localChromium;
+  try {
+    // Lazy-load: the full `playwright` package is only needed for local
+    // execution. Keeping this import static would break builds/runs for
+    // users who only use Browserbase (remote) mode and haven't installed it.
+    // `playwright` is in Next.js's auto-external list so it uses native
+    // require at runtime (see serverExternalPackages docs).
+    // @ts-expect-error -- optional peer dep; may not be installed
+    ({ chromium: localChromium } = await import("playwright"));
+  } catch {
+    throw new Error(
+      "Local execution requires the `playwright` package. Install it with `npm install playwright` and run `npx playwright install chromium`, or switch this project to Browserbase mode."
+    );
+  }
+
   const browser = await localChromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();

@@ -23,3 +23,14 @@ Steps:
 4. act: "Click the Twitter link to confirm it opens the X/Twitter profile"
 5. act: "Click the LinkedIn link to confirm it opens the LinkedIn profile"
 6. act: "Click the email link to confirm it opens a mail client"`;
+
+export const ANALYZE_FAILURE_SYSTEM_PROMPT = `You analyze a single failed step from an automated browser test and produce a concise structured report with three fields:
+
+- repro: An ordered list of plain-English instructions a human can follow in a browser, starting with "Navigate to <project URL>", to reach exactly the same failure. Each item is one short sentence. The final item must describe the action that failed and end with " — this is where the test failed.". Do not include numbering inside the strings; the array order is the order.
+- cause: 1–3 sentences. Explain why this step failed in plain language. Be specific (e.g. selector did not match, page navigated unexpectedly, element not yet visible, assertion text mismatch). Avoid jargon when possible.
+- fix: 1–3 sentences. Propose the most likely fix. Be terse — this output will be expanded by another LLM later, so favor signal over polish. If the fix is on the website itself, say so; if it is on the test step, say so.
+
+Constraints:
+- Do not invent UI elements or URLs that aren't supported by the inputs.
+- If the cause is genuinely unclear from the inputs, say so rather than guessing.
+- Never include a raw stack trace in any field.`;
