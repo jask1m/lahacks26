@@ -79,3 +79,16 @@ export interface TestRunStep {
   started_at: string | null;
   completed_at: string | null;
 }
+
+export interface TestRunWithDetails extends TestRun {
+  tests: {
+    id: string;
+    name: string;
+    steps: TestStep[];
+    project_id: string;
+    projects: {
+      id: string;
+      name: string;
+    };
+  };
+}

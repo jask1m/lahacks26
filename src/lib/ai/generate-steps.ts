@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { getModel } from "@/lib/ai/providers";
 import { z } from "zod";
 import type { TestStep } from "@/lib/supabase/types";
 import {
@@ -141,7 +141,7 @@ export async function compileStepForExecution(
 
   try {
     const { object } = await generateObject({
-      model: anthropic("claude-sonnet-4-20250514"),
+      model: getModel(),
       schema: executableActionsSchema,
       system: STEP_COMPILER_SYSTEM_PROMPT,
       prompt: `Website: ${websiteUrl}
@@ -172,7 +172,7 @@ export async function generateTestSteps(
 ) {
   void authConfigured;
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: getModel(),
     schema: testStepsSchema,
     system: GENERATE_STEPS_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}
