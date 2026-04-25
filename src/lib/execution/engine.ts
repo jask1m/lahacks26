@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import type { ResolvedAuthConfig } from "@/lib/auth/types";
 import type { Test, TestStep } from "@/lib/supabase/types";
 import { COMPILE_VERSION, compileStepForExecution } from "@/lib/ai/generate-steps";
-import { createBrowserSession } from "@/lib/browserbase/session";
+import { createBrowserSession, stopBrowserSession } from "@/lib/browserbase/session";
 import {
   isLocalExecutionEnabled,
   type ProjectExecutionMode,
@@ -529,13 +529,13 @@ async function createLocalBrowser(): Promise<ExecutionRuntime> {
   return { browser, page };
 }
 
-async function createRemoteBrowser(): Promise<ExecutionRuntime> {
+async function createRemoteBrowser(): Promise<ExecutionRuntime & { sessionId: string }> {
   const session = await createBrowserSession();
   const browser = await remoteChromium.connectOverCDP(session.connectUrl);
   const context = browser.contexts()[0];
   const page = context.pages()[0] || (await context.newPage());
 
-  return { browser, page, liveViewUrl: session.liveViewUrl };
+  return { browser, page, liveViewUrl: session.liveViewUrl, sessionId: session.sessionId };
 }
 
 export async function executeTestRun(runId: string, test: ExecutableTest) {
@@ -544,6 +544,7 @@ export async function executeTestRun(runId: string, test: ExecutableTest) {
 
   const executionMode = test.executionMode ?? "browserbase";
   let browser: BrowserLike | undefined;
+  let remoteSessionId: string | undefined;
   try {
     if (!test.url) {
       throw new Error("Project URL missing for test execution");
@@ -564,6 +565,9 @@ export async function executeTestRun(runId: string, test: ExecutableTest) {
         : await createRemoteBrowser();
 
     browser = runtime.browser;
+    if ("sessionId" in runtime) {
+      remoteSessionId = runtime.sessionId;
+    }
 
     if (runtime.liveViewUrl) {
       runEventBus.emit(runId, {
@@ -589,6 +593,9 @@ export async function executeTestRun(runId: string, test: ExecutableTest) {
       } catch {
         // Ignore browser teardown errors.
       }
+    }
+    if (remoteSessionId) {
+      await stopBrowserSession(remoteSessionId);
     }
   }
 }

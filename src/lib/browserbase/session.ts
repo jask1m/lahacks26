@@ -7,7 +7,6 @@ const bb = new Browserbase({
 export async function createBrowserSession() {
   const session = await bb.sessions.create({
     projectId: process.env.BROWSERBASE_PROJECT_ID!,
-    keepAlive: true,
   });
 
   const debugUrls = await bb.sessions.debug(session.id);
@@ -17,4 +16,12 @@ export async function createBrowserSession() {
     connectUrl: session.connectUrl,
     liveViewUrl: debugUrls.debuggerFullscreenUrl,
   };
+}
+
+export async function stopBrowserSession(sessionId: string) {
+  try {
+    await bb.sessions.update(sessionId, { status: "REQUEST_RELEASE" });
+  } catch {
+    // Session may already be stopped; ignore.
+  }
 }
