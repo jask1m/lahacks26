@@ -11,6 +11,7 @@ interface ViewportState {
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 2.0;
 const ZOOM_SENSITIVITY = 0.005;
+const ZOOM_STEP = 0.1;
 
 interface CanvasViewportProps {
   children: React.ReactNode;
@@ -64,12 +65,25 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
     });
   }, []);
 
+  // Zoom in/out via buttons
+  const zoomIn = useCallback(() => {
+    setViewport((prev) => {
+      const newScale = Math.min(MAX_SCALE, prev.scale + ZOOM_STEP);
+      return { ...prev, scale: newScale };
+    });
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setViewport((prev) => {
+      const newScale = Math.max(MIN_SCALE, prev.scale - ZOOM_STEP);
+      return { ...prev, scale: newScale };
+    });
+  }, []);
+
   // Pan: mouse down
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Only pan on left click on the canvas background
       if (e.button !== 0) return;
-      // Don't pan when clicking interactive elements inside nodes
       const target = e.target as HTMLElement;
       if (target.closest("[data-no-pan]")) return;
 
@@ -123,35 +137,104 @@ export function CanvasViewport({ children, className }: CanvasViewportProps) {
   const isPanning = panState.current.isPanning;
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        overflow: "hidden",
-        position: "relative",
-        cursor: isPanning ? "grabbing" : "grab",
-        backgroundImage:
-          "radial-gradient(circle, oklch(0.4 0 0 / 0.3) 1px, transparent 1px)",
-        backgroundSize: `${24 * viewport.scale}px ${24 * viewport.scale}px`,
-        backgroundPosition: `${viewport.x}px ${viewport.y}px`,
-      }}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-    >
+    <div className={`${className ?? ""} p-4`}>
+      {/* Inset frame */}
       <div
-        ref={contentRef}
+        className="w-full h-full rounded-xl overflow-hidden relative"
         style={{
-          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`,
-          transformOrigin: "0 0",
-          willChange: "transform",
+          border: "1px solid rgba(255,255,255,0.09)",
+          boxShadow:
+            "inset 0 0 0 1px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.4)",
         }}
       >
-        {children}
-      </div>
+        {/* Canvas with light grid */}
+        <div
+          ref={containerRef}
+          className="w-full h-full"
+          style={{
+            overflow: "hidden",
+            position: "relative",
+            cursor: isPanning ? "grabbing" : "grab",
+            backgroundColor: "#f8f8fb",
+            backgroundImage:
+              "radial-gradient(circle, rgba(0,0,0,0.11) 1px, transparent 1px)",
+            backgroundSize: `${20 * viewport.scale}px ${20 * viewport.scale}px`,
+            backgroundPosition: `${viewport.x}px ${viewport.y}px`,
+          }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+        >
+          {/* Staging Area label */}
+          <span
+            className="absolute top-3 right-3.5 text-[10px] font-semibold uppercase pointer-events-none select-none z-10"
+            style={{ color: "rgba(0,0,0,0.18)", letterSpacing: "0.08em" }}
+          >
+            Staging Area
+          </span>
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-3 right-3 px-2 py-1 rounded bg-bg-2/80 text-[11px] text-muted-foreground select-none pointer-events-none">
-        {Math.round(viewport.scale * 100)}%
+          {/* Pan/zoom content */}
+          <div
+            ref={contentRef}
+            style={{
+              transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`,
+              transformOrigin: "0 0",
+              willChange: "transform",
+            }}
+          >
+            {children}
+          </div>
+
+          {/* Zoom controls */}
+          <div
+            data-no-pan
+            className="absolute bottom-3.5 right-3.5 flex items-center gap-0.5 rounded-lg select-none z-10"
+            style={{
+              background: "white",
+              border: "1px solid rgba(0,0,0,0.1)",
+              padding: "3px 5px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            }}
+          >
+            <button
+              onClick={zoomOut}
+              className="flex items-center justify-center w-[22px] h-[22px] rounded-[5px] text-sm transition-colors"
+              style={{ color: "rgba(0,0,0,0.4)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+                e.currentTarget.style.color = "rgba(0,0,0,0.65)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "rgba(0,0,0,0.4)";
+              }}
+            >
+              −
+            </button>
+            <div className="w-px h-[13px] mx-0.5" style={{ background: "rgba(0,0,0,0.1)" }} />
+            <span
+              className="px-1 font-mono text-[10.5px] select-none"
+              style={{ color: "rgba(0,0,0,0.35)" }}
+            >
+              {Math.round(viewport.scale * 100)}%
+            </span>
+            <div className="w-px h-[13px] mx-0.5" style={{ background: "rgba(0,0,0,0.1)" }} />
+            <button
+              onClick={zoomIn}
+              className="flex items-center justify-center w-[22px] h-[22px] rounded-[5px] text-sm transition-colors"
+              style={{ color: "rgba(0,0,0,0.4)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+                e.currentTarget.style.color = "rgba(0,0,0,0.65)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "rgba(0,0,0,0.4)";
+              }}
+            >
+              +
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

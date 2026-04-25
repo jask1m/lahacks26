@@ -56,6 +56,15 @@
   --color-bg-3: var(--bg-3);
   --color-text-tertiary: var(--text-tertiary);
   --color-border-highlight: var(--border-highlight);
+
+  /* Canvas light theme tokens */
+  --color-canvas-bg: var(--canvas-bg);
+  --color-canvas-node-bg: var(--canvas-node-bg);
+  --color-canvas-text: var(--canvas-text);
+  --color-canvas-text-muted: var(--canvas-text-muted);
+  --color-canvas-border: var(--canvas-border);
+  --color-canvas-border-hover: var(--canvas-border-hover);
+  --color-canvas-connector: var(--canvas-connector);
 }
 
 /* Dark-first dashboard theme */
@@ -102,6 +111,15 @@
   --bg-3: #222222;
   --text-tertiary: #5a5a72;
   --border-highlight: rgba(255,255,255,0.13);
+
+  /* Canvas light theme */
+  --canvas-bg: #f8f8fb;
+  --canvas-node-bg: #ffffff;
+  --canvas-text: #1a1a2e;
+  --canvas-text-muted: rgba(0,0,0,0.3);
+  --canvas-border: rgba(0,0,0,0.09);
+  --canvas-border-hover: rgba(0,0,0,0.18);
+  --canvas-connector: rgba(0,0,0,0.14);
 }
 
 @layer base {

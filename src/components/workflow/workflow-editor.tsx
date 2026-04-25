@@ -6,7 +6,7 @@ import { StepNode } from "./step-node";
 import { AddNodeButton } from "./add-node-button";
 import { AddStepModal } from "./add-step-modal";
 import { Button } from "@/components/ui/button";
-import { Play, Save, CheckCircle2 } from "lucide-react";
+import { Play, Save } from "lucide-react";
 import { CanvasViewport } from "./canvas-viewport";
 import { v4 as uuidv4 } from "uuid";
 
@@ -21,7 +21,7 @@ interface WorkflowEditorProps {
 }
 
 function Connector() {
-  return <div className="w-px h-6 bg-border-highlight" />;
+  return <div className="w-[1.5px] h-6 bg-canvas-connector" />;
 }
 
 export function WorkflowEditor({
@@ -97,10 +97,18 @@ export function WorkflowEditor({
       <CanvasViewport className="flex-1 bg-bg-0">
         <div className="flex flex-col items-center py-10 px-4" data-no-pan>
           {/* Trigger */}
-          <div className="flex items-center gap-2.5 px-[18px] py-2.5 bg-bg-2 border border-dashed border-border-highlight rounded-3xl text-[12.5px] text-muted-foreground max-w-[520px] w-full">
-            <svg width="13" height="13" viewBox="0 0 15 15" fill="none">
-              <path d="M7.5 1a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 7.5 1z" stroke="currentColor" strokeWidth="1.2"/>
-              <path d="M7.5 5v4M7.5 10.5v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+          <div
+            className="flex items-center gap-2.5 px-[18px] py-2.5 bg-white border-dashed rounded-full font-mono text-[12px] max-w-[520px] w-full"
+            style={{
+              borderWidth: "1.5px",
+              borderColor: "rgba(0,0,0,0.18)",
+              color: "rgba(0,0,0,0.4)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+              <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M7.5 5v3M7.5 10v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
             {testName}
           </div>
@@ -124,9 +132,12 @@ export function WorkflowEditor({
           <Connector />
           <AddNodeButton onClick={() => setModalInsertIndex(steps.length)} />
           <Connector />
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-accent-green" />
-            <span className="text-sm text-muted-foreground">End</span>
+          <div className="flex items-center gap-[7px]" style={{ color: "rgba(0,0,0,0.3)" }}>
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
+              <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M5 7.5l2 2 3.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-[12.5px]">End</span>
           </div>
         </div>
       </CanvasViewport>
