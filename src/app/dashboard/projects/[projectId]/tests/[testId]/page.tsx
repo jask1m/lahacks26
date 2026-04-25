@@ -135,7 +135,7 @@ export default function TestEditorPage() {
   if (!test) return <div className="p-6">Test not found</div>;
 
   return (
-    <div className="h-[calc(100vh-3.5rem)]">
+    <div className="h-screen">
       <WorkflowEditor
         testName={test.name}
         steps={steps}

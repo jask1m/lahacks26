@@ -6,7 +6,7 @@ import { StepNode } from "./step-node";
 import { AddNodeButton } from "./add-node-button";
 import { AddStepModal } from "./add-step-modal";
 import { Button } from "@/components/ui/button";
-import { Play, Save, Sparkles, CheckCircle2 } from "lucide-react";
+import { Play, Save, CheckCircle2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 interface WorkflowEditorProps {
@@ -20,7 +20,7 @@ interface WorkflowEditorProps {
 }
 
 function Connector() {
-  return <div className="w-px h-6 bg-gray-300" />;
+  return <div className="w-px h-6 bg-border-highlight" />;
 }
 
 export function WorkflowEditor({
@@ -32,9 +32,7 @@ export function WorkflowEditor({
   saving,
   toolbarActions,
 }: WorkflowEditorProps) {
-  // Modal state: which insert index the + button was clicked at
   const [modalInsertIndex, setModalInsertIndex] = useState<number | null>(null);
-  // Track which step ID should auto-focus (just added)
   const [autoFocusId, setAutoFocusId] = useState<string | null>(null);
 
   const handleDelete = useCallback(
@@ -69,15 +67,25 @@ export function WorkflowEditor({
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-1">
         <div />
         <div className="flex items-center gap-2">
           {toolbarActions}
-          <Button variant="outline" size="sm" onClick={onSave} disabled={saving}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSave}
+            disabled={saving}
+            className="bg-transparent border-border-highlight text-muted-foreground hover:bg-bg-2 hover:text-foreground"
+          >
             <Save className="h-4 w-4 mr-2" />
             {saving ? "Saving..." : "Save"}
           </Button>
-          <Button size="sm" onClick={onRun}>
+          <Button
+            size="sm"
+            onClick={onRun}
+            className="bg-accent-green text-white hover:bg-[oklch(0.74_0.16_162)] shadow-[0_0_20px_oklch(0.7_0.16_162/0.25)] hover:shadow-[0_0_28px_oklch(0.7_0.16_162/0.4)] border-0"
+          >
             <Play className="h-4 w-4 mr-2" />
             Run
           </Button>
@@ -85,19 +93,20 @@ export function WorkflowEditor({
       </div>
 
       {/* Scrollable workflow area */}
-      <div className="flex-1 overflow-y-auto bg-gray-50/50">
+      <div className="flex-1 overflow-y-auto bg-bg-0">
         <div className="flex flex-col items-center py-10 px-4">
-          {/* Title */}
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">
-              {testName}
-            </span>
+          {/* Trigger */}
+          <div className="flex items-center gap-2.5 px-[18px] py-2.5 bg-bg-2 border border-dashed border-border-highlight rounded-3xl text-[12.5px] text-muted-foreground max-w-[520px] w-full">
+            <svg width="13" height="13" viewBox="0 0 15 15" fill="none">
+              <path d="M7.5 1a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 7.5 1z" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M7.5 5v4M7.5 10.5v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+            {testName}
           </div>
 
           {/* Steps with connectors and + buttons */}
           {steps.map((step, index) => (
-            <div key={step.id} className="flex flex-col items-center w-full max-w-[460px]">
+            <div key={step.id} className="flex flex-col items-center w-full max-w-[520px]">
               <Connector />
               <AddNodeButton onClick={() => setModalInsertIndex(index)} />
               <Connector />
@@ -115,7 +124,7 @@ export function WorkflowEditor({
           <AddNodeButton onClick={() => setModalInsertIndex(steps.length)} />
           <Connector />
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-accent-green" />
             <span className="text-sm text-muted-foreground">End</span>
           </div>
         </div>

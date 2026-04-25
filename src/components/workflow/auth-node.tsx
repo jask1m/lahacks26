@@ -1,7 +1,6 @@
 "use client";
 
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { Badge } from "@/components/ui/badge";
 import { KeyRound, X } from "lucide-react";
 import { TestStep } from "@/lib/supabase/types";
 import { useEffect, useRef, useState } from "react";
@@ -34,17 +33,16 @@ export function AuthNode({ data }: NodeProps) {
   }
 
   return (
-    <div className="bg-white border border-border rounded-lg px-4 py-3 shadow-sm min-w-[300px] group">
+    <div className="bg-bg-1 border border-border border-l-[3px] border-l-[oklch(0.7_0.14_55)] rounded-lg px-4 py-3 min-w-[300px] group transition-colors hover:bg-bg-2 hover:border-border-highlight">
       <Handle type="target" position={Position.Top} className="!bg-border" />
       <div className="flex items-start gap-3">
-        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 shrink-0 mt-0.5">
-          <KeyRound className="h-3 w-3 mr-1" />
+        <span className="shrink-0 mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-[oklch(0.7_0.14_55/0.12)] text-[oklch(0.7_0.14_55)] border-[oklch(0.7_0.14_55/0.3)]">
           Auth
-        </Badge>
+        </span>
         {editing ? (
           <textarea
             ref={inputRef}
-            className="flex-1 text-sm border rounded px-2 py-1 resize-none"
+            className="flex-1 text-[13.5px] bg-bg-2 border border-border-highlight rounded px-2 py-1 resize-none text-foreground focus:outline-none focus:ring-1 focus:ring-accent-blue/30"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onBlur={handleSave}
@@ -62,7 +60,7 @@ export function AuthNode({ data }: NodeProps) {
           />
         ) : (
           <span
-            className="flex-1 text-sm cursor-pointer hover:text-muted-foreground"
+            className="flex-1 text-[13.5px] text-foreground cursor-pointer hover:text-muted-foreground"
             onDoubleClick={() => setEditing(true)}
           >
             {step.description}

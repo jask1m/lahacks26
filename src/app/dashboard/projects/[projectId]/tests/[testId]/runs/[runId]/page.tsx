@@ -8,7 +8,6 @@ import { useRunStream } from "@/hooks/use-run-stream";
 import { RunnerLayout } from "@/components/runner/runner-layout";
 import { StepProgress } from "@/components/runner/step-progress";
 import { BrowserEmbed } from "@/components/runner/browser-embed";
-import { Badge } from "@/components/ui/badge";
 import {
   getAuthStrategyLabel,
   maskWorkflowUsername,
@@ -18,9 +17,10 @@ import {
   getProjectExecutionModeFromString,
   type ProjectExecutionMode,
 } from "@/lib/projects/url";
-import { ArrowLeft, FlaskConical, KeyRound, RotateCcw } from "lucide-react";
+import { FlaskConical, KeyRound, RotateCcw, Pencil, Square } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Topbar } from "@/components/dashboard/topbar";
 
 export default function TestRunPage() {
   const params = useParams();
@@ -57,7 +57,7 @@ export default function TestRunPage() {
     loadTest();
   }, [projectId, testId]);
 
-  if (!test) return <div className="p-6 text-muted-foreground">Loading...</div>;
+  if (!test) return <div className="p-7 text-muted-foreground">Loading...</div>;
 
   const authStep = test.steps.find((step) => step.type === "auth") ?? null;
   const resolvedAuthConfig = resolveWorkflowAuthConfigFromStep(authStep);
@@ -66,92 +66,103 @@ export default function TestRunPage() {
     ? maskWorkflowUsername(authStep.authCredentials.username)
     : null;
 
-  const statusColors = {
-    pending: "bg-muted text-muted-foreground",
-    running: "bg-blue-100 text-blue-700",
-    passed: "bg-green-100 text-green-700",
-    failed: "bg-red-100 text-red-700",
+  const statusColors: Record<string, string> = {
+    pending: "bg-bg-3 text-muted-foreground",
+    running: "bg-accent-blue/15 text-accent-blue",
+    passed: "bg-accent-green/15 text-accent-green",
+    failed: "bg-destructive/15 text-destructive",
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/dashboard/projects/${projectId}/tests/${testId}`}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <FlaskConical className="h-4 w-4 text-muted-foreground" />
-          <span className="font-semibold text-sm">{test.name}</span>
-          <Badge className={statusColors[runStatus]}>{runStatus}</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          {runStatus === "running" && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-              Testing your website...
-            </div>
-          )}
-          {(runStatus === "passed" || runStatus === "failed") && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={rerunning}
-              onClick={async () => {
-                setRerunning(true);
-                try {
-                  const res = await fetch(`/api/tests/${testId}/run`, {
-                    method: "POST",
-                  });
-                  if (res.ok) {
-                    const { runId: newRunId } = await res.json();
-                    router.push(
-                      `/dashboard/projects/${projectId}/tests/${testId}/runs/${newRunId}`
-                    );
+    <div className="flex flex-col h-screen">
+      {/* Topbar */}
+      <Topbar
+        breadcrumbs={[
+          { label: "Projects", href: "/dashboard" },
+          { label: test.name, href: `/dashboard/projects/${projectId}` },
+          { label: "Run" },
+        ]}
+        actions={
+          <>
+            <Link href={`/dashboard/projects/${projectId}/tests/${testId}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-transparent border-border-highlight text-muted-foreground hover:bg-bg-2 hover:text-foreground text-[13px] h-8"
+              >
+                <Pencil className="h-3 w-3 mr-1.5" />
+                Edit Test
+              </Button>
+            </Link>
+            {(runStatus === "passed" || runStatus === "failed") && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={rerunning}
+                className="bg-transparent border-border-highlight text-muted-foreground hover:bg-bg-2 hover:text-foreground text-[13px] h-8"
+                onClick={async () => {
+                  setRerunning(true);
+                  try {
+                    const res = await fetch(`/api/tests/${testId}/run`, {
+                      method: "POST",
+                    });
+                    if (res.ok) {
+                      const { runId: newRunId } = await res.json();
+                      router.push(
+                        `/dashboard/projects/${projectId}/tests/${testId}/runs/${newRunId}`
+                      );
+                    }
+                  } finally {
+                    setRerunning(false);
                   }
-                } finally {
-                  setRerunning(false);
-                }
-              }}
-            >
-              <RotateCcw className="h-4 w-4 mr-1" />
-              {rerunning ? "Starting..." : "Rerun"}
-            </Button>
-          )}
-        </div>
-      </div>
+                }}
+              >
+                <RotateCcw className="h-3 w-3 mr-1.5" />
+                {rerunning ? "Starting..." : "Rerun"}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Split view */}
       <div className="flex-1 overflow-hidden">
         <RunnerLayout
           left={
-            <div className="h-full overflow-hidden">
+            <div className="h-full overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-heading text-[13px] font-semibold text-foreground truncate">
+                    {test.name}
+                  </span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[runStatus]}`}>
+                    {runStatus}
+                  </span>
+                </div>
+              </div>
+
               {resolvedAuthConfig ? (
-                <div className="border-b bg-amber-50/40 p-4">
-                  <div className="flex items-start justify-between gap-3">
+                <div className="border-b border-border bg-[oklch(0.7_0.14_55/0.05)] px-5 py-3">
+                  <div className="flex items-start gap-2">
+                    <KeyRound className="h-3.5 w-3.5 text-[oklch(0.7_0.14_55)] mt-0.5" />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <KeyRound className="h-4 w-4 text-amber-700" />
-                        <span className="text-sm font-medium">Workflow Auth</span>
-                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[12px] font-medium text-foreground">Workflow Auth</span>
+                        <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-[oklch(0.7_0.14_55/0.12)] text-[oklch(0.7_0.14_55)] border border-[oklch(0.7_0.14_55/0.3)]">
                           {getAuthStrategyLabel(resolvedAuthConfig.strategy)}
-                        </Badge>
-                        {isDefaultedAuth ? (
-                          <Badge
-                            variant="outline"
-                            className="border-slate-200 text-slate-700 bg-white"
-                          >
+                        </span>
+                        {isDefaultedAuth && (
+                          <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-bg-3 text-muted-foreground border border-border">
                             Defaulted
-                          </Badge>
-                        ) : null}
+                          </span>
+                        )}
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
+                      <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
                         {resolvedAuthConfig.prompt}
                       </p>
-                      <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="mt-1 text-[10px] text-text-tertiary">
                         {resolvedAuthConfig.strategy === "existing_login"
                           ? maskedUsername
                             ? `Saved account: ${maskedUsername}`
@@ -166,7 +177,35 @@ export default function TestRunPage() {
                   </div>
                 </div>
               ) : null}
-              <StepProgress steps={test.steps} runSteps={runSteps} />
+
+              {/* Steps */}
+              <div className="flex-1 overflow-hidden">
+                <StepProgress steps={test.steps} runSteps={runSteps} />
+              </div>
+
+              {/* Status bar */}
+              <div className="px-5 py-2.5 border-t border-border bg-bg-1 flex items-center justify-between">
+                {runStatus === "running" ? (
+                  <div className="flex items-center gap-2 text-accent-green text-[12px] font-medium">
+                    <div className="w-[7px] h-[7px] bg-accent-green rounded-full animate-ta-pulse" />
+                    Testing your website...
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-text-tertiary">
+                    {runStatus === "passed" ? "All steps passed" : runStatus === "failed" ? "Test failed" : "Waiting..."}
+                  </div>
+                )}
+                {runStatus === "running" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent border-destructive/30 text-destructive hover:bg-destructive/10 text-[12px] h-7 px-2.5"
+                  >
+                    <Square className="h-[10px] w-[10px] mr-1.5 fill-current" />
+                    Stop Test
+                  </Button>
+                )}
+              </div>
             </div>
           }
           right={

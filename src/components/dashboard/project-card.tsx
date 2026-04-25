@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { Project } from "@/lib/supabase/types";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { getProjectExecutionModeFromString } from "@/lib/projects/url";
-import { Globe, Trash2 } from "lucide-react";
+import { Globe, Trash2, ChevronRight } from "lucide-react";
 
 interface ProjectCardProps {
   project: Project;
@@ -18,7 +16,34 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
   return (
     <Link href={`/dashboard/projects/${project.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer group relative">
+      <div className="bg-bg-1 border border-border rounded-lg px-[18px] py-4 flex items-center gap-3.5 cursor-pointer transition-all hover:bg-bg-2 hover:border-border-highlight hover:-translate-y-px hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] group">
+        {/* Icon */}
+        <div className="w-9 h-9 bg-bg-3 rounded-lg border border-border flex items-center justify-center shrink-0">
+          <Globe className="h-[15px] w-[15px] text-text-tertiary" />
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="text-[13.5px] font-heading font-semibold text-foreground truncate">
+            {project.name}
+          </div>
+          <div className="text-[11.5px] font-mono text-text-tertiary mt-0.5 truncate">
+            {project.url}
+          </div>
+        </div>
+
+        {/* Badge */}
+        <span
+          className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap border ${
+            executionMode === "local"
+              ? "bg-[oklch(0.55_0.1_55/0.15)] text-[oklch(0.72_0.12_55)] border-[oklch(0.55_0.1_55/0.25)]"
+              : "bg-[oklch(0.55_0.1_250/0.15)] text-[oklch(0.72_0.12_250)] border-[oklch(0.55_0.1_250/0.25)]"
+          }`}
+        >
+          {executionMode === "local" ? "Local" : "Hosted"}
+        </span>
+
+        {/* Delete */}
         {onDelete && (
           <button
             onClick={(e) => {
@@ -26,28 +51,14 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
               e.stopPropagation();
               onDelete(project);
             }}
-            className="absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-muted"
+            className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         )}
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-              <Globe className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base truncate">{project.name}</CardTitle>
-                <Badge variant="secondary">
-                  {executionMode === "local" ? "Local" : "Hosted"}
-                </Badge>
-              </div>
-              <CardDescription className="truncate">{project.url}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+
+        <ChevronRight className="h-3.5 w-3.5 text-text-tertiary shrink-0" />
+      </div>
     </Link>
   );
 }

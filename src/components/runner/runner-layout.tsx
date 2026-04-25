@@ -9,9 +9,9 @@ interface RunnerLayoutProps {
 
 export function RunnerLayout({ left, right }: RunnerLayoutProps) {
   return (
-    <div className="grid grid-cols-[1fr_1fr] h-full gap-0">
-      <div className="border-r overflow-hidden">{left}</div>
-      <div className="p-4 overflow-hidden">{right}</div>
+    <div className="grid grid-cols-[340px_1fr] h-full gap-0">
+      <div className="bg-bg-1 border-r border-border overflow-hidden">{left}</div>
+      <div className="bg-bg-0 overflow-hidden">{right}</div>
     </div>
   );
 }
