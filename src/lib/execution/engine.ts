@@ -513,15 +513,12 @@ async function executeSteps(runId: string, test: ExecutableTest, page: Page) {
 async function createLocalBrowser(): Promise<ExecutionRuntime> {
   let localChromium;
   try {
-    // Lazy-load: the full `playwright` package is only needed for local
-    // execution. Keeping this import static would break builds/runs for
-    // users who only use Browserbase (remote) mode and haven't installed it.
-    // `playwright` is in Next.js's auto-external list so it uses native
-    // require at runtime (see serverExternalPackages docs).
-    ({ chromium: localChromium } = await import("playwright"));
+    // Lazy-load so createLocalBrowser() doesn't run at import time for
+    // users who only use Browserbase (remote) mode.
+    ({ chromium: localChromium } = await import("playwright-core"));
   } catch {
     throw new Error(
-      "Local execution requires the `playwright` package. Install it with `npm install playwright` and run `npx playwright install chromium`, or switch this project to Browserbase mode."
+      "Local execution requires browser binaries. Run `npx playwright install chromium`, or switch this project to Browserbase mode."
     );
   }
 
