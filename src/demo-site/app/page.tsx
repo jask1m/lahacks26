@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { ArrowRight, Truck, Shield, RotateCcw } from 'lucide-react'
 import { Button } from '@/demo-site/components/ui/button'
 import { ProductCard } from '@/demo-site/components/product-card'
+import { HomeInspoUpload } from '@/demo-site/components/home-inspo-upload'
 import { products, categories, promoBanners } from '@/demo-site/lib/mock-data'
 
 const featuredProducts = products.filter(p => p.featured).slice(0, 4)
@@ -188,6 +189,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeInspoUpload />
 
       {/* Newsletter */}
       <section className="py-16 bg-muted" data-testid="newsletter-section">

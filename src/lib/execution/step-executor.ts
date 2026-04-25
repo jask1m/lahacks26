@@ -1,5 +1,7 @@
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { access } from "node:fs/promises";
+import path from "node:path";
 import type { Page } from "playwright-core";
 import type { TestStep } from "@/lib/supabase/types";
 import type {
@@ -17,6 +19,7 @@ Available actions:
 - navigate: Go to a URL. Requires "url".
 - click: Click an element. Requires "selector".
 - type: Type text into an input. Requires "selector" and "value".
+- uploadFile: Upload a file using an <input type="file">. Requires "selector" and "value" (file path).
 - waitForSelector: Wait for an element to appear. Requires "selector".
 - assertVisible: Assert an element is visible. Requires "selector".
 - assertText: Assert text content exists on page. Requires "value".
@@ -815,6 +818,62 @@ function buildFallbackSelectors(selector: string): string[] {
   return Array.from(fallbacks);
 }
 
+function isFileInputSelector(selector: string): boolean {
+  const normalized = selector.toLowerCase();
+  return (
+    normalized.includes("input[type='file']") ||
+    normalized.includes('input[type="file"]') ||
+    normalized.includes("[type='file']") ||
+    normalized.includes('[type="file"]') ||
+    normalized.includes("upload-input")
+  );
+}
+
+async function resolveUploadFilePath(filePath: string): Promise<string> {
+  const trimmedPath = filePath.trim();
+  if (!trimmedPath) {
+    throw new Error("Upload file path is required.");
+  }
+
+  const resolvedPath = path.isAbsolute(trimmedPath)
+    ? trimmedPath
+    : path.resolve(process.cwd(), trimmedPath);
+
+  try {
+    await access(resolvedPath);
+  } catch {
+    throw new Error(`Upload file not found: ${resolvedPath}`);
+  }
+
+  return resolvedPath;
+}
+
+async function setInputFilesBySelector(
+  page: Page,
+  selector: string,
+  filePath: string
+): Promise<string> {
+  const candidates = splitSelectorCandidates(selector);
+  let lastError: Error | null = null;
+
+  for (const candidate of candidates) {
+    try {
+      const locator = page.locator(candidate).first();
+      if ((await locator.count()) === 0) {
+        continue;
+      }
+
+      await locator.setInputFiles(filePath);
+      return candidate;
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("Unknown upload selector error");
+    }
+  }
+
+  throw lastError ?? new Error(`No file input selector matched: ${selector}`);
+}
+
 export async function executeActions(
   page: Page,
   actions: ExecutableAction[]
@@ -843,11 +902,42 @@ export async function executeActions(
           results.push(`Typed "${action.value}" into ${action.selector}`);
           break;
 
+        case "uploadFile": {
+          if (!action.selector) {
+            throw new Error("uploadFile action requires a selector.");
+          }
+          if (!action.value) {
+            throw new Error("uploadFile action requires a file path in value.");
+          }
+
+          const resolvedPath = await resolveUploadFilePath(action.value);
+          action.selector = await setInputFilesBySelector(
+            page,
+            action.selector,
+            resolvedPath
+          );
+          results.push(`Uploaded file: ${resolvedPath} into ${action.selector}`);
+          break;
+        }
+
         case "waitForSelector":
           try {
             await page.waitForSelector(action.selector!, { timeout: 10000 });
             results.push(`Found: ${action.selector}`);
           } catch (primaryError) {
+            if (isFileInputSelector(action.selector!)) {
+              try {
+                await page.waitForSelector(action.selector!, {
+                  timeout: 10000,
+                  state: "attached",
+                });
+                results.push(`Found (attached file input): ${action.selector}`);
+                break;
+              } catch {
+                // Continue into existing fallback logic if attached lookup also fails.
+              }
+            }
+
             const fallbackSelectors = buildFallbackSelectors(action.selector!);
             let matchedFallback: string | null = null;
 
@@ -954,12 +1044,13 @@ export async function executeActions(
           break;
       }
     } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       return {
         success: false,
         details: `Failed at "${action.description}": ${message}`,
         completedActions: results,
         failingAction: action,
-        rawErrorMessage: err instanceof Error ? err.message : String(err),
+        rawErrorMessage: message,
       };
     }
   }

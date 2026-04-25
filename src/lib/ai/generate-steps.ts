@@ -25,6 +25,7 @@ Only use these actions:
 - navigate: Go to a URL. Requires "url".
 - click: Click an element. Requires "selector".
 - type: Fill an input. Requires "selector" and "value".
+- uploadFile: Upload a file through an <input type="file">. Requires "selector" and "value" (file path).
 - waitForSelector: Wait for an element to appear. Requires "selector".
 - assertVisible: Verify an element is visible. Requires "selector".
 - assertText: Verify text exists on the page. Requires "value".
@@ -37,7 +38,11 @@ Rules:
 - Prefer stable selectors: role=, text=, labels, placeholders, then CSS.
 - Do not invent credentials or auth actions.
 - For navigation steps, prefer absolute URLs.
-- For simple text verification, prefer assertText over brittle selectors.`;
+- For simple text verification, prefer assertText over brittle selectors.
+- For file upload steps, prefer uploadFile with stable input selectors.
+- For the demo upload page, prefer selector [data-testid='upload-input'].
+- The demo upload page path is /demo-store/demo-upload (not /demo-store/upload).
+- Use deterministic fixture path fixtures/uploads/sample-upload.txt when a file is needed.`;
 
 function normalizePath(path: string) {
   if (!path.startsWith("/")) {
@@ -61,6 +66,20 @@ function tryCompileHeuristically(
   if (step.type === "act") {
     if (
       /\b(navigate|open|visit|go to)\b/.test(lower) &&
+      /\b(upload|file upload)\b/.test(lower) &&
+      /\b(page|screen|demo)\b/.test(lower)
+    ) {
+      return [
+        {
+          action: "navigate",
+          url: new URL("/demo-store/demo-upload", websiteUrl).toString(),
+          description,
+        },
+      ];
+    }
+
+    if (
+      /\b(navigate|open|visit|go to)\b/.test(lower) &&
       /\b(home|homepage|landing page|site|website)\b/.test(lower)
     ) {
       return [
@@ -80,6 +99,21 @@ function tryCompileHeuristically(
         {
           action: "navigate",
           url: new URL(normalizePath(pathMatch[1]), websiteUrl).toString(),
+          description,
+        },
+      ];
+    }
+
+    if (
+      /\b(upload|attach|choose file|select file|file upload|drag and drop)\b/.test(
+        lower
+      )
+    ) {
+      return [
+        {
+          action: "uploadFile",
+          selector: "[data-testid='upload-input']",
+          value: "fixtures/uploads/sample-upload.txt",
           description,
         },
       ];
