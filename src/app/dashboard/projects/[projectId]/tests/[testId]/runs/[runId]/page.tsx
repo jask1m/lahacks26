@@ -33,6 +33,7 @@ export default function TestRunPage() {
   const [rerunning, setRerunning] = useState(false);
   const [executionMode, setExecutionMode] =
     useState<ProjectExecutionMode>("browserbase");
+  const [projectUrl, setProjectUrl] = useState<string | null>(null);
   const { steps: runSteps, runStatus, liveViewUrl } = useRunStream(runId);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function TestRunPage() {
       ]);
 
       setTest(testData);
+      setProjectUrl(projectData?.url ?? null);
       setExecutionMode(
         projectData?.execution_mode ??
           getProjectExecutionModeFromString(
@@ -84,6 +86,9 @@ export default function TestRunPage() {
     : null;
 
   const progressPct = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
+  const latestScreenshotUrl =
+    [...runSteps].reverse().find((step) => step.screenshot_url)?.screenshot_url ??
+    null;
 
   // Status chip + indicator styling
   const chipStyles: Record<string, string> = {
@@ -267,6 +272,8 @@ export default function TestRunPage() {
             <BrowserEmbed
               liveViewUrl={liveViewUrl}
               executionMode={executionMode}
+              latestScreenshotUrl={latestScreenshotUrl}
+              projectUrl={projectUrl}
             />
           }
         />

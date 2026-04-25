@@ -1,28 +1,81 @@
 "use client";
 
-import type { ProjectExecutionMode } from "@/lib/projects/url";
+import {
+  isLocalUrl,
+  type ProjectExecutionMode,
+} from "@/lib/projects/url";
 
 export function BrowserEmbed({
   liveViewUrl,
   executionMode,
+  latestScreenshotUrl,
+  projectUrl,
 }: {
   liveViewUrl: string | null;
   executionMode: ProjectExecutionMode;
+  latestScreenshotUrl?: string | null;
+  projectUrl?: string | null;
 }) {
-  if (executionMode === "local") {
+  const shouldShowLocalPreview =
+    executionMode === "local" ||
+    Boolean(projectUrl && isLocalUrl(projectUrl)) ||
+    Boolean(latestScreenshotUrl && !liveViewUrl);
+
+  if (shouldShowLocalPreview) {
     return (
-      <div className="flex items-center justify-center h-full bg-bg-2">
-        <div className="text-center max-w-sm px-6">
-          <div className="w-12 h-12 rounded-xl bg-bg-3 border border-border-highlight flex items-center justify-center mx-auto mb-4">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-text-tertiary">
-              <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/>
-              <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-            </svg>
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex items-center gap-[10px] px-[14px] h-[44px] bg-bg-1 border-b border-border shrink-0">
+          <div className="flex gap-[5px] shrink-0">
+            <div className="w-[10px] h-[10px] rounded-full bg-[#ff5f57]" />
+            <div className="w-[10px] h-[10px] rounded-full bg-[#febc2e]" />
+            <div className="w-[10px] h-[10px] rounded-full bg-[#28c840]" />
           </div>
-          <div className="text-[13px] font-medium text-foreground mb-1">Local execution mode</div>
-          <p className="text-[12px] text-text-tertiary">
-            This run is using a local Playwright browser, so Browserbase live view is not available.
-          </p>
+          <div className="flex-1 bg-bg-3 border border-border-highlight rounded-md px-2.5 py-[5px] text-[11px] font-mono text-muted-foreground truncate flex items-center gap-[7px] min-w-0">
+            <span className="opacity-35 shrink-0">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                <rect x="2" y="5.5" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M4 5.5V3.5a2 2 0 0 1 4 0v2" stroke="currentColor" strokeWidth="1.2"/>
+              </svg>
+            </span>
+            <span className="overflow-hidden whitespace-nowrap text-ellipsis">
+              {projectUrl ?? "Local Playwright preview"}
+            </span>
+          </div>
+          {latestScreenshotUrl ? (
+            <button
+              className="w-[26px] h-[26px] flex items-center justify-center rounded-[5px] text-text-tertiary hover:bg-bg-2 hover:text-muted-foreground transition-colors shrink-0"
+              title="Open screenshot in new tab"
+              onClick={() => window.open(latestScreenshotUrl, "_blank")}
+            >
+              <svg width="12" height="12" viewBox="0 0 15 15" fill="none">
+                <path d="M9 2h4v4M13 2l-6 6M6 4H3v8h8v-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : null}
+        </div>
+        <div className="flex-1 bg-bg-2 overflow-hidden">
+          {latestScreenshotUrl ? (
+            <img
+              src={latestScreenshotUrl}
+              alt="Latest local browser screenshot"
+              className="w-full h-full object-contain bg-[#f7f7fb]"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-sm px-6">
+                <div className="w-12 h-12 rounded-xl bg-bg-3 border border-border-highlight flex items-center justify-center mx-auto mb-4">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-text-tertiary">
+                    <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+                    <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="text-[13px] font-medium text-foreground mb-1">Local execution mode</div>
+                <p className="text-[12px] text-text-tertiary">
+                  Waiting for the first local Playwright screenshot to arrive.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
