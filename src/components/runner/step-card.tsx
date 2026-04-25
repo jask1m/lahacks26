@@ -205,11 +205,11 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
               )}
             </div>
           ) : parsedDetails ? (
-            <div className="bg-bg-2 border border-border rounded-[7px] p-[9px_11px] text-[11px] leading-[1.55] space-y-1.5">
+            <div className="bg-bg-2 border border-border rounded-[7px] p-[9px_11px] text-[11px] leading-[1.55] space-y-1.5 overflow-hidden">
               {parsedDetails.summary && (
                 <div className="flex gap-2">
                   <span className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] shrink-0 pt-px w-[52px]">Result</span>
-                  <span className={`text-[11px] ${status === "passed" ? "text-accent-green" : status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
+                  <span className={`text-[11px] min-w-0 break-words ${status === "passed" ? "text-accent-green" : status === "failed" ? "text-destructive" : "text-muted-foreground"}`}>
                     {parsedDetails.summary}
                   </span>
                 </div>
@@ -217,19 +217,19 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
               {parsedDetails.compileNotes && (
                 <div className="flex gap-2">
                   <span className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] shrink-0 pt-px w-[52px]">Notes</span>
-                  <span className="text-muted-foreground">{parsedDetails.compileNotes}</span>
+                  <span className="text-muted-foreground min-w-0 break-words">{parsedDetails.compileNotes}</span>
                 </div>
               )}
               {parsedDetails.completed && parsedDetails.completed.length > 0 && (
                 <div className="flex gap-2">
                   <span className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] shrink-0 pt-px w-[52px]">Done</span>
-                  <pre className="text-muted-foreground whitespace-pre-wrap">{parsedDetails.completed.join("\n")}</pre>
+                  <pre className="text-muted-foreground whitespace-pre-wrap min-w-0 break-words">{parsedDetails.completed.join("\n")}</pre>
                 </div>
               )}
               {parsedDetails.failure && (
                 <div className="flex gap-2">
                   <span className="text-[10px] uppercase font-semibold text-text-tertiary tracking-[0.04em] shrink-0 pt-px w-[52px]">Error</span>
-                  <pre className="text-destructive whitespace-pre-wrap">{parsedDetails.failure}</pre>
+                  <pre className="text-destructive whitespace-pre-wrap min-w-0 break-words">{parsedDetails.failure}</pre>
                 </div>
               )}
             </div>
