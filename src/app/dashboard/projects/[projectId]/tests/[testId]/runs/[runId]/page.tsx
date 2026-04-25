@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Test } from "@/lib/supabase/types";
@@ -17,7 +17,7 @@ import {
   getProjectExecutionModeFromString,
   type ProjectExecutionMode,
 } from "@/lib/projects/url";
-import { FlaskConical, KeyRound, RotateCcw, Pencil, Square } from "lucide-react";
+import { KeyRound, RotateCcw, Pencil, Square } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -57,6 +57,23 @@ export default function TestRunPage() {
     loadTest();
   }, [projectId, testId]);
 
+  // Compute step counts
+  const { passedCount, failedCount, pendingCount, completedCount, totalSteps } = useMemo(() => {
+    const total = test?.steps.length ?? 0;
+    let passed = 0, failed = 0;
+    for (const rs of runSteps) {
+      if (rs.status === "passed") passed++;
+      else if (rs.status === "failed") failed++;
+    }
+    return {
+      passedCount: passed,
+      failedCount: failed,
+      pendingCount: total - passed - failed,
+      completedCount: passed + failed,
+      totalSteps: total,
+    };
+  }, [runSteps, test?.steps.length]);
+
   if (!test) return <div className="p-7 text-muted-foreground">Loading...</div>;
 
   const authStep = test.steps.find((step) => step.type === "auth") ?? null;
@@ -66,12 +83,27 @@ export default function TestRunPage() {
     ? maskWorkflowUsername(authStep.authCredentials.username)
     : null;
 
-  const statusColors: Record<string, string> = {
-    pending: "bg-bg-3 text-muted-foreground",
-    running: "bg-accent-blue/15 text-accent-blue",
-    passed: "bg-accent-green/15 text-accent-green",
-    failed: "bg-destructive/15 text-destructive",
+  const progressPct = totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0;
+
+  // Status chip + indicator styling
+  const chipStyles: Record<string, string> = {
+    pending: "bg-bg-3 text-text-tertiary border-border-highlight",
+    running: "bg-accent-blue/12 text-accent-blue border-accent-blue/28",
+    passed: "bg-accent-green/12 text-accent-green border-accent-green/28",
+    failed: "bg-destructive/12 text-destructive border-destructive/28",
   };
+
+  const indicatorStyles: Record<string, string> = {
+    pending: "bg-bg-3 border border-border-highlight",
+    running: "bg-accent-blue shadow-[0_0_0_3px_oklch(0.68_0.18_255/0.12)] animate-ta-pulse",
+    passed: "bg-accent-green shadow-[0_0_6px_oklch(0.7_0.16_162/0.5)]",
+    failed: "bg-destructive shadow-[0_0_6px_oklch(0.62_0.22_27/0.5)]",
+  };
+
+  const progressBarClass =
+    runStatus === "passed" ? "bg-accent-green"
+    : runStatus === "failed" ? "bg-destructive"
+    : "bg-gradient-to-r from-accent-blue to-accent-green";
 
   return (
     <div className="flex flex-col h-screen">
@@ -84,22 +116,39 @@ export default function TestRunPage() {
         ]}
         actions={
           <>
+            {/* Run pill */}
+            <div className="flex items-center gap-2 bg-bg-2 border border-border-highlight rounded-[7px] px-[11px] py-[5px] font-mono text-[11.5px] text-muted-foreground">
+              <div className={`w-[7px] h-[7px] rounded-full shrink-0 ${indicatorStyles[runStatus]}`} />
+              <span className="truncate max-w-[140px]">{test.name}</span>
+            </div>
+
             <Link href={`/dashboard/projects/${projectId}/tests/${testId}`}>
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-transparent border-border-highlight text-muted-foreground hover:bg-bg-2 hover:text-foreground text-[13px] h-8"
+                className="bg-accent-blue/12 border-accent-blue/28 text-accent-blue hover:bg-accent-blue/18 text-[13px] h-8"
               >
                 <Pencil className="h-3 w-3 mr-1.5" />
-                Edit Test
+                Edit
               </Button>
             </Link>
+
+            {runStatus === "running" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-destructive/12 border-destructive/28 text-destructive hover:bg-destructive/18 text-[13px] h-8"
+              >
+                <Square className="h-[10px] w-[10px] mr-1.5 fill-current" />
+                Stop
+              </Button>
+            )}
+
             {(runStatus === "passed" || runStatus === "failed") && (
               <Button
                 size="sm"
-                variant="outline"
                 disabled={rerunning}
-                className="bg-transparent border-border-highlight text-muted-foreground hover:bg-bg-2 hover:text-foreground text-[13px] h-8"
+                className="bg-accent-green text-white hover:bg-[oklch(0.74_0.16_162)] shadow-[0_0_16px_oklch(0.7_0.16_162/0.3)] hover:shadow-[0_0_24px_oklch(0.7_0.16_162/0.45)] border-0 text-[13px] h-8"
                 onClick={async () => {
                   setRerunning(true);
                   try {
@@ -118,7 +167,7 @@ export default function TestRunPage() {
                 }}
               >
                 <RotateCcw className="h-3 w-3 mr-1.5" />
-                {rerunning ? "Starting..." : "Rerun"}
+                {rerunning ? "Starting..." : "Re-run"}
               </Button>
             )}
           </>
@@ -130,21 +179,33 @@ export default function TestRunPage() {
         <RunnerLayout
           left={
             <div className="h-full overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="px-5 py-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <FlaskConical className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-heading text-[13px] font-semibold text-foreground truncate">
-                    {test.name}
+              {/* Panel header */}
+              <div className="px-4 py-3.5 border-b border-border shrink-0">
+                <div className="flex items-center justify-between mb-[10px]">
+                  <span className="text-[10.5px] font-semibold uppercase text-text-tertiary" style={{ letterSpacing: "0.07em" }}>
+                    Test Steps
                   </span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[runStatus]}`}>
-                    {runStatus}
+                  <div className={`flex items-center gap-[5px] text-[11px] font-semibold px-[9px] py-[3px] rounded-full border ${chipStyles[runStatus]}`}>
+                    <div className={`w-[5px] h-[5px] rounded-full bg-current ${runStatus === "running" ? "animate-ta-pulse" : ""}`} />
+                    <span>{runStatus === "running" ? "Running" : runStatus === "passed" ? "Passed" : runStatus === "failed" ? "Failed" : "Pending"}</span>
+                  </div>
+                </div>
+                <div className="h-[3px] bg-bg-3 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-500 ease-out ${progressBarClass}`}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1.5">
+                  <span className="text-[10.5px] text-text-tertiary">{completedCount} of {totalSteps} steps</span>
+                  <span className="text-[10.5px] font-mono text-text-tertiary">
+                    {runStatus === "running" ? "..." : runStatus === "pending" ? "—" : "done"}
                   </span>
                 </div>
               </div>
 
               {resolvedAuthConfig ? (
-                <div className="border-b border-border bg-[oklch(0.7_0.14_55/0.05)] px-5 py-3">
+                <div className="border-b border-border bg-[oklch(0.7_0.14_55/0.05)] px-4 py-3 shrink-0">
                   <div className="flex items-start gap-2">
                     <KeyRound className="h-3.5 w-3.5 text-[oklch(0.7_0.14_55)] mt-0.5" />
                     <div className="min-w-0">
@@ -183,28 +244,22 @@ export default function TestRunPage() {
                 <StepProgress steps={test.steps} runSteps={runSteps} />
               </div>
 
-              {/* Status bar */}
-              <div className="px-5 py-2.5 border-t border-border bg-bg-1 flex items-center justify-between">
-                {runStatus === "running" ? (
-                  <div className="flex items-center gap-2 text-accent-green text-[12px] font-medium">
-                    <div className="w-[7px] h-[7px] bg-accent-green rounded-full animate-ta-pulse" />
-                    Testing your website...
-                  </div>
-                ) : (
-                  <div className="text-[12px] text-text-tertiary">
-                    {runStatus === "passed" ? "All steps passed" : runStatus === "failed" ? "Test failed" : "Waiting..."}
-                  </div>
-                )}
-                {runStatus === "running" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-transparent border-destructive/30 text-destructive hover:bg-destructive/10 text-[12px] h-7 px-2.5"
-                  >
-                    <Square className="h-[10px] w-[10px] mr-1.5 fill-current" />
-                    Stop Test
-                  </Button>
-                )}
+              {/* Panel footer — stat dots */}
+              <div className="px-[14px] py-[11px] border-t border-border flex items-center gap-[10px] shrink-0">
+                <div className="flex items-center gap-[5px]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent-green" />
+                  <span className="text-[11px] text-text-tertiary">{passedCount} passed</span>
+                </div>
+                <div className="w-px h-3 bg-border-highlight" />
+                <div className="flex items-center gap-[5px]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive" />
+                  <span className="text-[11px] text-text-tertiary">{failedCount} failed</span>
+                </div>
+                <div className="w-px h-3 bg-border-highlight" />
+                <div className="flex items-center gap-[5px]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-bg-3 border border-border-highlight" />
+                  <span className="text-[11px] text-text-tertiary">{pendingCount} pending</span>
+                </div>
               </div>
             </div>
           }
