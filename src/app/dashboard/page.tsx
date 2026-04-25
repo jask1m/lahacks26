@@ -13,6 +13,28 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadProjects() {
+      const { data } = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+
+      setProjects(data || []);
+      setLoading(false);
+    }
+
+    void loadProjects();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function loadProjects() {
     const { data } = await supabase
       .from("projects")
@@ -21,10 +43,6 @@ export default function DashboardPage() {
     setProjects(data || []);
     setLoading(false);
   }
-
-  useEffect(() => {
-    loadProjects();
-  }, []);
 
   return (
     <div className="p-6 max-w-5xl mx-auto">

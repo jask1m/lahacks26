@@ -1,7 +1,10 @@
+import type { ProjectExecutionMode } from "@/lib/projects/url";
+
 export interface Project {
   id: string;
   name: string;
   url: string;
+  execution_mode?: ProjectExecutionMode;
   created_at: string;
 }
 

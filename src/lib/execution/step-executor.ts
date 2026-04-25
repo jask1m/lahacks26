@@ -137,10 +137,11 @@ export async function executeActions(
           results.push("Scrolled down");
           break;
       }
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown action error";
       return {
         success: false,
-        details: `Failed at "${action.description}": ${err.message}\n\nCompleted: ${results.join(", ")}`,
+        details: `Failed at "${action.description}": ${message}\n\nCompleted: ${results.join(", ")}`,
       };
     }
   }

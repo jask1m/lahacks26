@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateTestDialog } from "@/components/dashboard/create-test-dialog";
+import { getProjectExecutionModeFromString } from "@/lib/projects/url";
 import { ArrowLeft, Plus, FlaskConical } from "lucide-react";
 
 export default function ProjectDetailPage() {
@@ -43,6 +44,9 @@ export default function ProjectDetailPage() {
   if (loading) return <div className="p-6 text-muted-foreground">Loading...</div>;
   if (!project) return <div className="p-6">Project not found</div>;
 
+  const executionMode =
+    project.execution_mode ?? getProjectExecutionModeFromString(project.url);
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
@@ -55,7 +59,12 @@ export default function ProjectDetailPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{project.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{project.name}</h1>
+              <Badge variant="secondary">
+                {executionMode === "local" ? "Local" : "Hosted"}
+              </Badge>
+            </div>
             <p className="text-muted-foreground text-sm">{project.url}</p>
           </div>
           <Button onClick={() => setDialogOpen(true)}>

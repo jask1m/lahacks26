@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import {
   ReactFlow,
   Background,
@@ -47,30 +47,24 @@ export function WorkflowEditor({
   onRun,
   saving,
 }: WorkflowEditorProps) {
-  // Use refs so callbacks always see latest steps without causing nodeTypes to change
-  const stepsRef = useRef(steps);
-  stepsRef.current = steps;
-  const onStepsChangeRef = useRef(onStepsChange);
-  onStepsChangeRef.current = onStepsChange;
-
   const handleDelete = useCallback((id: string) => {
-    onStepsChangeRef.current(stepsRef.current.filter((s) => s.id !== id));
-  }, []);
+    onStepsChange(steps.filter((s) => s.id !== id));
+  }, [onStepsChange, steps]);
 
   const handleEdit = useCallback((id: string, description: string) => {
-    onStepsChangeRef.current(
-      stepsRef.current.map((s) => (s.id === id ? { ...s, description } : s))
+    onStepsChange(
+      steps.map((s) => (s.id === id ? { ...s, description } : s))
     );
-  }, []);
+  }, [onStepsChange, steps]);
 
   const handleAddNode = useCallback(
     (afterIndex: number, type: "act" | "assert", description: string) => {
       const newStep: TestStep = { id: uuidv4(), type, description };
-      const newSteps = [...stepsRef.current];
+      const newSteps = [...steps];
       newSteps.splice(afterIndex + 1, 0, newStep);
-      onStepsChangeRef.current(newSteps);
+      onStepsChange(newSteps);
     },
-    []
+    [onStepsChange, steps]
   );
 
   // Build nodes and edges with callbacks baked into data

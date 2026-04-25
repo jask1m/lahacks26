@@ -1,6 +1,28 @@
 "use client";
 
-export function BrowserEmbed({ liveViewUrl }: { liveViewUrl: string | null }) {
+import type { ProjectExecutionMode } from "@/lib/projects/url";
+
+export function BrowserEmbed({
+  liveViewUrl,
+  executionMode,
+}: {
+  liveViewUrl: string | null;
+  executionMode: ProjectExecutionMode;
+}) {
+  if (executionMode === "local") {
+    return (
+      <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg border">
+        <div className="text-center text-muted-foreground max-w-sm px-6">
+          <div className="mb-2 font-medium text-foreground">Local execution mode</div>
+          <p className="text-sm">
+            This run is using a local Playwright browser, so Browserbase live
+            view is not available.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!liveViewUrl) {
     return (
       <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg border">

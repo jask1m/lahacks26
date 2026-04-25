@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
 import { executeTestRun } from "@/lib/execution/engine";
 import { Test } from "@/lib/supabase/types";
+import { getProjectExecutionModeFromString } from "@/lib/projects/url";
 
 export const maxDuration = 300;
 
@@ -43,12 +44,18 @@ export async function POST(
   await supabase.from("test_run_steps").insert(stepRecords);
 
   // Fire and forget — start execution in background
-  const testWithUrl: Test & { projects: { url: string } } = test;
+  const testWithUrl: Test & {
+    projects: { url: string; execution_mode?: "browserbase" | "local" };
+  } = test;
   executeTestRun(run.id, {
     ...test,
-    // Ensure the engine has the website URL
     url: testWithUrl.projects?.url,
-  } as any).catch((err) => console.error("Execution error:", err));
+    executionMode:
+      testWithUrl.projects?.execution_mode ??
+      (testWithUrl.projects?.url
+        ? getProjectExecutionModeFromString(testWithUrl.projects.url)
+        : undefined),
+  }).catch((err) => console.error("Execution error:", err));
 
   return NextResponse.json({ runId: run.id });
 }
