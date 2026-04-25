@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { Project } from "@/lib/supabase/types";
 import { ProjectCard } from "@/components/dashboard/project-card";
@@ -10,7 +9,7 @@ import { DeleteProjectDialog } from "@/components/dashboard/delete-project-dialo
 import { Topbar } from "@/components/dashboard/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
-import { Plus, Store, ChevronRight, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -82,32 +81,6 @@ export default function DashboardPage() {
           <StatCard label="Pass Rate" value="--" valueClassName="text-accent-green" />
           <StatCard label="Last Run" value="--" />
         </div>
-
-        {/* Featured */}
-        <div className="text-[11px] font-semibold tracking-wider uppercase text-text-tertiary mb-2.5">
-          Featured
-        </div>
-        <Link href="/demo-store">
-          <div className="bg-bg-1 border border-border rounded-lg px-5 py-[18px] flex items-center gap-4 cursor-pointer transition-all hover:bg-bg-2 hover:border-border-highlight hover:-translate-y-px hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] mb-2.5">
-            <div className="w-10 h-10 bg-gradient-to-br from-bg-3 to-bg-2 rounded-[10px] border border-border-highlight flex items-center justify-center shrink-0">
-              <Store className="h-[18px] w-[18px] text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-heading font-semibold text-foreground">
-                Demo Store
-              </div>
-              <div className="text-xs text-text-tertiary mt-0.5">
-                Ecommerce UI surface for automated QA testing
-              </div>
-            </div>
-            <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full border bg-[oklch(0.55_0.1_250/0.15)] text-[oklch(0.72_0.12_250)] border-[oklch(0.55_0.1_250/0.25)]">
-              Hosted
-            </span>
-            <ChevronRight className="h-3.5 w-3.5 text-text-tertiary" />
-          </div>
-        </Link>
-
-        <div className="h-px bg-border my-5" />
 
         {/* All Projects */}
         <div className="text-[11px] font-semibold tracking-wider uppercase text-text-tertiary mb-2.5">
