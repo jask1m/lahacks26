@@ -583,6 +583,13 @@ export async function executeTestRun(runId: string, test: ExecutableTest) {
       error instanceof Error ? error.message : "Unknown test execution error";
     await failRunBeforeExecution(runId, test, message);
   } finally {
+    // Keep the browser session alive briefly so the user can see the final state
+    // in the live view before the connection drops.
+    const KEEP_ALIVE_MS = 10_000;
+    if (remoteSessionId) {
+      await new Promise((r) => setTimeout(r, KEEP_ALIVE_MS));
+    }
+
     if (browser) {
       try {
         if (executionMode === "local" && browser.close) {
