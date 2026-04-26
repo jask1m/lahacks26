@@ -31,3 +31,46 @@ npm i
 npm run dev
 ```
 
+## MCP Server (use TesterArmy from your coding agent)
+
+In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server (`mcp/`) that exposes the same UI-testing capabilities to coding agents like Claude Code, Cursor, and Windsurf. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.tester-army/`).
+
+### How it works
+The server exposes two tools that mirror the web app's **propose → review → run** flow:
+
+- `propose_tests({ url, intent, count?, name? })` — generates a suite of distinct draft tests for the given URL and intent, persisted under a shared `suiteId`. The agent renders the steps to you and invites edits.
+- `run_tests({ suiteId, tests?, timeoutMsPerTest? })` — runs every test in the suite in its own fresh Browserbase session. Returns per-test pass/fail, a durable `recordingUrl` (session replay), and on failure a structured `{ repro, cause, fix }` report. Pass `tests` to apply your edits before running.
+
+The host application's approval prompt on `run_tests` is the single confirmation gate — you can reply with edits before approving, or say "run it as-is."
+
+### Add it to an agent
+Build the server once:
+```
+cd mcp
+npm i
+npm run build
+```
+
+Then register it. **Claude Code:**
+```
+claude mcp add tester-army -- node /absolute/path/to/lahacks26/mcp/dist/index.js
+```
+
+**Cursor / Windsurf** (add to `~/.cursor/mcp.json` or your IDE's equivalent):
+```json
+{
+  "mcpServers": {
+    "tester-army": {
+      "command": "node",
+      "args": ["/absolute/path/to/lahacks26/mcp/dist/index.js"],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-...",
+        "BROWSERBASE_API_KEY": "bb_...",
+        "BROWSERBASE_PROJECT_ID": "..."
+      }
+    }
+  }
+}
+```
+
+Then in your agent: *"Use tester-army to propose 3 tests covering the homepage of https://example.com."* See `mcp/README.md` for full details, limitations, and state layout.

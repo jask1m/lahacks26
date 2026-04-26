@@ -84,7 +84,7 @@ const proposeTests: ToolDefinition<z.infer<typeof proposeTestsSchema>, unknown> 
   name: "propose_tests",
   title: "Propose a series of tests for user review",
   description:
-    "Given a website URL and a high-level intent, propose a SUITE of distinct tests (default 3) covering different behaviors. Persists each as a draft test under a shared `suiteId` so the user can review and edit before running. ALWAYS surface the proposed `tests` array to the user, ask them to review/edit the steps, and then call `run_tests` with the same `suiteId` (and any per-test overrides) to execute the approved suite. Do NOT call `run_tests` until the user has approved the proposal.",
+    "Given a website URL and a high-level intent, propose a SUITE of distinct tests (default 3) covering different behaviors. Persists each as a draft test under a shared `suiteId`. After calling this tool, render the proposed `tests` array to the user as a readable summary (test names + step bullets) and ALWAYS include an explicit invitation that they can edit, e.g. \"Reply with any edits (rename, reword, change/add/remove steps) or I'll run it as-is.\" Then IMMEDIATELY call `run_tests` with the same `suiteId` — the host application's tool-approval prompt for `run_tests` is the user's single confirmation gate, so do NOT ask your own separate \"does this look good?\" / \"approve?\" yes/no question. If the user replies with edits before you call `run_tests`, encode them in the `tests` override array on that call.",
   inputSchema: proposeTestsSchema,
   handler: async ({ url, intent, count, name }) => {
     const normalized = normalizeProjectUrl(url, name);
@@ -144,7 +144,7 @@ const proposeTests: ToolDefinition<z.infer<typeof proposeTestsSchema>, unknown> 
       projectReused,
       tests: persisted.map(testProposal),
       reviewInstructions:
-        "Show this proposed suite to the user. They may edit any test's name, description, or steps. When the user approves, call `run_tests` with this `suiteId` (and pass a `tests` array containing the user's edits if any). Do not run until the user explicitly approves.",
+        "Render this suite to the user as a concise summary (test names + step bullets). Include an explicit one-line invitation such as \"Reply with any edits (rename, reword, change/add/remove steps) or I'll run it as-is.\" so the user clearly knows editing is an option. Then call `run_tests` with this `suiteId` immediately — do NOT add your own \"does this look good?\" or \"approve?\" question, because the host application's tool-approval prompt on the `run_tests` call is the user's single confirmation gate. If the user interrupts with edits before you make that call, pass them via the `tests` override array on `run_tests`.",
       warnings: authTests.length
         ? [
             `Tests ${authTests.join(
