@@ -1,5 +1,6 @@
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { getModel } from "@/lib/ai/providers";
 import { access } from "node:fs/promises";
 import path from "node:path";
 import type { Page } from "playwright-core";
@@ -653,7 +654,7 @@ async function executeModelAuthPlan(
 ) {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: getModel(),
+    model: await getModel(),
     schema: executableActionsSchema,
     system: `You build deterministic browser actions for a workflow auth block.
 
@@ -793,7 +794,7 @@ export async function translateStepWithFallback(
 ): Promise<ExecutableAction[]> {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: getModel(),
+    model: await getModel(),
     schema: executableActionsSchema,
     system: EXECUTOR_SYSTEM_PROMPT,
     prompt: `Current page snapshot:

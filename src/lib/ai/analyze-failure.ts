@@ -87,7 +87,7 @@ export async function analyzeStepFailure(
   ctx: AnalyzeFailureContext
 ): Promise<FailureAnalysis> {
   const { object } = await generateObject({
-    model: getModel(),
+    model: await getModel(),
     schema: analysisSchema,
     system: ANALYZE_FAILURE_SYSTEM_PROMPT,
     prompt: buildPrompt(ctx),

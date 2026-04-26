@@ -13,6 +13,7 @@ import {
   insertTest,
 } from "./store.js";
 import { executeRun } from "./runner.js";
+import { formatRunReport, type RunReportPayload } from "./format.js";
 import type { LocalProject, LocalTest } from "./types.js";
 
 export interface ToolDefinition<Args, Result> {
@@ -21,6 +22,13 @@ export interface ToolDefinition<Args, Result> {
   description: string;
   inputSchema: z.ZodType<Args>;
   handler: (args: Args) => Promise<Result>;
+  /**
+   * Optional pre-render of the result into a user-facing markdown string. When
+   * provided, the server emits the formatted text as the first content block
+   * (with a strict "print verbatim" directive) so MCP clients display the
+   * spec'd format regardless of how the agent paraphrases.
+   */
+  format?: (result: Result) => string;
 }
 
 function projectSummary(project: LocalProject) {
@@ -190,16 +198,12 @@ const runTestsSchema = z.object({
     .describe("Optional cap per test in ms. Defaults to 5 minutes per test."),
 });
 
-const runTests: ToolDefinition<z.infer<typeof runTestsSchema>, unknown> = {
+const runTests: ToolDefinition<z.infer<typeof runTestsSchema>, RunReportPayload> = {
   name: "run_tests",
   title: "Run an approved test suite and return per-test results",
   description:
-    "Execute every test in a suite produced by `propose_tests`, each in its own fresh Browserbase session. Blocks until all tests reach a terminal state. For each test the response includes:\n" +
-    "- `recordingUrl`: a durable Browserbase session-replay link showing exactly what the app did during that test. ALWAYS surface this to the user.\n" +
-    "- `liveViewUrl`: short-lived live view URL (usually expired by the time this returns); prefer `recordingUrl`.\n" +
-    "- `steps`: per-step pass/fail/skipped status with screenshot paths.\n" +
-    "- `failure` (only on failure): a structured report with `repro` (ordered steps to reproduce — the WHAT and HOW), `cause` (concise explanation of WHY it failed), `fix` (concise explanation of HOW to fix it), plus `raw`, `errorClass`, and `stack`. When rendering a failure to the user, present these as: (a) what + repro, (b) cause, (c) fix.\n" +
-    "Only call this AFTER the user has approved the proposed suite.",
+    "Execute every test in an approved suite, each in its own fresh isolated browser session. Blocks until all tests reach a terminal state. Only call this AFTER the user has approved the proposed suite.\n\n" +
+    "USER-FACING OUTPUT: the response includes a pre-rendered USER-FACING REPORT in the first text content block, wrapped between `<<<REPORT>>>` and `<<<END>>>` markers. Reply to the user with the EXACT contents between those markers, verbatim, with no prefix, suffix, paraphrasing, or summary. Do not wrap the report in your own narrative or restate the test intent. The second text block is structured JSON for your internal reference only — do not surface it to the user, and never show `liveViewUrl`, screenshot paths, or stack traces. Always label the durable link as 'Recording' (it is a video).",
   inputSchema: runTestsSchema,
   handler: async ({ suiteId, tests, timeoutMsPerTest }) => {
     let suiteTests = await getTestsBySuite(suiteId);
@@ -263,6 +267,7 @@ const runTests: ToolDefinition<z.infer<typeof runTestsSchema>, unknown> = {
       results,
     };
   },
+  format: formatRunReport,
 };
 
 export const allTools = [proposeTests, runTests] as const;

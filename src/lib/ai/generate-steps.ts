@@ -190,7 +190,7 @@ export async function compileStepForExecution(
 
   try {
     const { object } = await generateObject({
-      model: getModel(),
+      model: await getModel(),
       schema: executableActionsSchema,
       system: STEP_COMPILER_SYSTEM_PROMPT,
       prompt: `Website: ${websiteUrl}
@@ -221,7 +221,7 @@ export async function generateTestSteps(
 ) {
   void authConfigured;
   const { object } = await generateObject({
-    model: getModel(),
+    model: await getModel(),
     schema: testStepsSchema,
     system: GENERATE_STEPS_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}
@@ -283,7 +283,7 @@ export async function generateTestSuite(
 ): Promise<GeneratedSuiteTest[]> {
   const clamped = Math.max(1, Math.min(10, Math.floor(count)));
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: await getModel(),
     schema: testSuiteSchema,
     system: GENERATE_TEST_SUITE_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}
