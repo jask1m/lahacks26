@@ -5,6 +5,7 @@ export const executableActionSchema = z.object({
     "navigate",
     "click",
     "type",
+    "uploadFile",
     "waitForSelector",
     "assertVisible",
     "assertText",

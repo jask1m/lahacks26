@@ -1,0 +1,2 @@
+Sample upload fixture for automated demo-store file upload tests.
+This file is intentionally small and deterministic.
