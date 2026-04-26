@@ -42,7 +42,7 @@ import {
 import type { LocalRun, LocalRunStep } from "./types.js";
 
 const FAILURE_ANALYSIS_TIMEOUT_MS = 15_000;
-const KEEP_ALIVE_MS = 10_000;
+const KEEP_ALIVE_MS = 2_500;
 
 interface RunnerOptions {
   /** Total cap on the run, defaults to 5 minutes (matches the web app). */

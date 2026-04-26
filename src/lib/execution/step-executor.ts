@@ -895,6 +895,24 @@ async function resolveUploadFilePath(filePath: string): Promise<string> {
   return resolvedPath;
 }
 
+function urlsAreEquivalent(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  try {
+    const ua = new URL(a);
+    const ub = new URL(b);
+    const stripSlash = (p: string) => (p === "/" ? "/" : p.replace(/\/+$/, ""));
+    return (
+      ua.origin === ub.origin &&
+      stripSlash(ua.pathname) === stripSlash(ub.pathname) &&
+      ua.search === ub.search &&
+      ua.hash === ub.hash
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function setInputFilesBySelector(
   page: Page,
   selector: string,
@@ -932,13 +950,25 @@ export async function executeActions(
     if (progress) progress.lastAttempted = action;
     try {
       switch (action.action) {
-        case "navigate":
-          await page.goto(action.url!, {
+        case "navigate": {
+          const target = action.url!;
+          let currentUrl = "";
+          try {
+            currentUrl = page.url();
+          } catch {
+            currentUrl = "";
+          }
+          if (urlsAreEquivalent(currentUrl, target)) {
+            results.push(`Already at ${target} (skipped redundant navigation)`);
+            break;
+          }
+          await page.goto(target, {
             waitUntil: "domcontentloaded",
             timeout: 15000,
           });
-          results.push(`Navigated to ${action.url}`);
+          results.push(`Navigated to ${target}`);
           break;
+        }
 
         case "click":
           action.selector = await clickSelector(page, action.selector!);
