@@ -827,6 +827,27 @@ function normalizeTextForMatch(text: string): string {
   return text.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+function tokenizeForMatch(text: string): string[] {
+  return text
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.toLowerCase())
+    .filter((token) => token.length >= 2);
+}
+
+function matchAssertText(
+  actual: string,
+  expected: string
+): "exact" | "tokens" | "miss" {
+  if (!expected) return "miss";
+  if (actual.includes(expected)) return "exact";
+  const expectedTokens = tokenizeForMatch(expected);
+  if (expectedTokens.length < 2) return "miss";
+  const actualTokens = new Set(tokenizeForMatch(actual));
+  return expectedTokens.every((token) => actualTokens.has(token))
+    ? "tokens"
+    : "miss";
+}
+
 function buildFallbackSelectors(selector: string): string[] {
   const selectorParts = selector
     .split(",")
@@ -1043,10 +1064,15 @@ export async function executeActions(
           const bodyText = await page.textContent("body");
           const actual = normalizeTextForMatch(bodyText ?? "");
           const expected = normalizeTextForMatch(action.value ?? "");
-          if (!expected || !actual.includes(expected)) {
+          const matchMode = matchAssertText(actual, expected);
+          if (matchMode === "miss") {
             throw new Error(`Text not found on page: "${action.value}"`);
           }
-          results.push(`Verified text: "${action.value}"`);
+          results.push(
+            matchMode === "tokens"
+              ? `Verified text (token match): "${action.value}"`
+              : `Verified text: "${action.value}"`
+          );
           break;
         }
 
