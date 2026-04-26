@@ -6,9 +6,8 @@ import {
   LayoutGrid,
   List,
   CalendarClock,
-  TrendingUp,
   Clock,
-  Star,
+  Cpu,
 } from "lucide-react";
 
 const workspaceNav = [
@@ -18,9 +17,11 @@ const workspaceNav = [
 ];
 
 const insightsNav = [
-  { label: "Reports", href: "/dashboard/reports", icon: TrendingUp },
   { label: "Run History", href: "/dashboard/history", icon: Clock },
-  { label: "Integrations", href: "/dashboard/integrations", icon: Star },
+];
+
+const settingsNav = [
+  { label: "Compute", href: "/dashboard/compute", icon: Cpu },
 ];
 
 export function Sidebar() {
@@ -75,6 +76,29 @@ export function Sidebar() {
           Insights
         </div>
         {insightsNav.map((item) => {
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13.5px] font-medium transition-colors select-none ${
+                active
+                  ? "bg-accent-blue/12 text-accent-blue border border-accent-blue/30"
+                  : "text-muted-foreground hover:bg-bg-2 hover:text-foreground border border-transparent"
+              }`}
+            >
+              <item.icon className="h-[15px] w-[15px] shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <div className="h-px bg-border my-2" />
+
+        <div className="text-[10px] font-semibold tracking-widest uppercase text-text-tertiary px-2.5 pt-2 pb-1.5">
+          Settings
+        </div>
+        {settingsNav.map((item) => {
           const active = isActive(item.href);
           return (
             <Link

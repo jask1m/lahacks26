@@ -1,5 +1,4 @@
 import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { getModel } from "@/lib/ai/providers";
 import { access } from "node:fs/promises";
 import path from "node:path";
@@ -808,6 +807,21 @@ Translate this single failing step into fallback actions.`,
 
   return object.actions;
 }
+
+export type ExecutedAction = ExecutableAction;
+
+export type ExecuteActionsResult =
+  | {
+      success: true;
+      details: string;
+      completedActions: string[];
+    }
+  | {
+      success: false;
+      completedActions: string[];
+      failingAction: ExecutedAction;
+      rawErrorMessage: string;
+    };
 
 function normalizeTextForMatch(text: string): string {
   return text.replace(/\s+/g, " ").trim().toLowerCase();

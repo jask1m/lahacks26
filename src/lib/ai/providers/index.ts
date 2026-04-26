@@ -1,5 +1,33 @@
 export type AIProvider = "gemma-api" | "gemma-vultr" | "claude";
 
+async function getProviderFromCookies(): Promise<AIProvider | null> {
+  try {
+    // Dynamically import next/headers so this module remains usable outside a
+    // Next.js server runtime (e.g. the standalone MCP server process). In any
+    // non-request context the import or cookies() call will throw and we fall
+    // through to the env-based selection below.
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const settingsCookie = cookieStore.get("compute-settings");
+
+    if (settingsCookie) {
+      const settings = JSON.parse(settingsCookie.value);
+      if (settings.cloudCompute) {
+        return "gemma-vultr";
+      }
+      if (settings.model === "claude") {
+        return "claude";
+      }
+      if (settings.model === "gemma") {
+        return "gemma-api";
+      }
+    }
+  } catch {
+    // Not in a Next.js request scope, or cookie missing/malformed — ignore.
+  }
+  return null;
+}
+
 export function getAIProvider(): AIProvider {
   const provider = process.env.AI_PROVIDER as AIProvider | undefined;
 
@@ -11,7 +39,12 @@ export function getAIProvider(): AIProvider {
 }
 
 export async function getModel() {
-  const provider = getAIProvider();
+  // Prefer the provider chosen via the dashboard's compute-settings cookie
+  // (Next.js request scope only); otherwise fall back to AI_PROVIDER env /
+  // the default. Log to stderr — stdout is reserved for MCP JSON-RPC.
+  const cookieProvider = await getProviderFromCookies();
+  const provider = cookieProvider ?? getAIProvider();
+  console.error(`[AI Provider] Using: ${provider}`);
 
   switch (provider) {
     case "gemma-api":
