@@ -25,7 +25,7 @@ function loadDotEnv(file) {
   return out;
 }
 
-const env = { ...process.env, ...loadDotEnv(envFile), TESTER_ARMY_STATE_DIR: resolve(__dirname, ".smoke-state") };
+const env = { ...process.env, ...loadDotEnv(envFile), DEEPCRAWL_STATE_DIR: resolve(__dirname, ".smoke-state") };
 
 const required = ["ANTHROPIC_API_KEY", "BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"];
 const missing = required.filter((k) => !env[k]);

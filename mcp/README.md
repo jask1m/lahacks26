@@ -1,8 +1,8 @@
-# tester-army-mcp
+# deepcrawl-mcp
 
 An MCP (Model Context Protocol) server that exposes [TesterArmy](../README.md)'s UI testing capabilities — generate workflows, run them in Browserbase, get structured failure reports — to coding agents like Claude Code, Cursor, and Windsurf.
 
-This server is an **alternative entry point** to the TesterArmy web app. It runs entirely locally as a standalone Node process; it does **not** require the Next.js app, Supabase, or any database. State lives in `~/.tester-army/state.json`.
+This server is an **alternative entry point** to the TesterArmy web app. It runs entirely locally as a standalone Node process; it does **not** require the Next.js app, Supabase, or any database. State lives in `~/.deepcrawl/state.json`.
 
 ## What you can do
 
@@ -41,14 +41,14 @@ npm run build
 
 This produces a single bundled file at `mcp/dist/index.js`.
 
-> Once published to npm you'll be able to run it via `npx tester-army-mcp` instead.
+> Once published to npm you'll be able to run it via `npx deepcrawl-mcp` instead.
 
 ## Hook it up to your coding agent
 
 ### Claude Code
 
 ```bash
-claude mcp add tester-army -- node /absolute/path/to/lahacks26/mcp/dist/index.js
+claude mcp add deepcrawl -- node /absolute/path/to/lahacks26/mcp/dist/index.js
 ```
 
 Then set the env vars in your shell or in `~/.config/claude/mcp.json`.
@@ -60,7 +60,7 @@ Add to your MCP config (e.g. `~/.cursor/mcp.json` or your IDE's equivalent):
 ```json
 {
   "mcpServers": {
-    "tester-army": {
+    "deepcrawl": {
       "command": "node",
       "args": ["/absolute/path/to/lahacks26/mcp/dist/index.js"],
       "env": {
@@ -77,14 +77,14 @@ Add to your MCP config (e.g. `~/.cursor/mcp.json` or your IDE's equivalent):
 
 In your agent, say something like:
 
-> Use tester-army to propose 3 tests covering the homepage of `https://example.com`. Show me the steps before you run anything.
+> Use deepcrawl to propose 3 tests covering the homepage of `https://example.com`. Show me the steps before you run anything.
 
 The agent will call `propose_tests`, surface the suite for your review, wait for your approval/edits, then call `run_tests` and report each test's `recordingUrl` plus any structured `failure` report.
 
 ## Where state lives
 
 ```
-~/.tester-army/
+~/.deepcrawl/
   state.json              # projects, tests, runs
   runs/<runId>/
     step-0.png            # screenshots, one per step
@@ -92,9 +92,9 @@ The agent will call `propose_tests`, surface the suite for your review, wait for
     ...
 ```
 
-You can override the location with the `TESTER_ARMY_STATE_DIR` env var.
+You can override the location with the `DEEPCRAWL_STATE_DIR` env var.
 
-To wipe everything: `rm -rf ~/.tester-army`.
+To wipe everything: `rm -rf ~/.deepcrawl`.
 
 ## Known limitations (MVP)
 

@@ -283,7 +283,7 @@ export async function generateTestSuite(
 ): Promise<GeneratedSuiteTest[]> {
   const clamped = Math.max(1, Math.min(10, Math.floor(count)));
   const { object } = await generateObject({
-    model: await getModel(),
+    model: await getStructuredModel(),
     schema: testSuiteSchema,
     system: GENERATE_TEST_SUITE_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}

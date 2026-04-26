@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { Suspense, useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { Button } from '@/demo-site/components/ui/button'
@@ -148,7 +148,7 @@ function FilterSidebar({
   )
 }
 
-export default function ShopPage() {
+function ShopPageContent() {
   const searchParams = useSearchParams()
   const initialCategory = searchParams.get('category') || ''
   
@@ -246,7 +246,7 @@ export default function ShopPage() {
     setCurrentPage(1)
   }
 
-  const hasActiveFilters = searchQuery || selectedCategories.length > 0 || 
+  const hasActiveFilters = Boolean(searchQuery) || selectedCategories.length > 0 || 
     priceRange[0] > 0 || priceRange[1] < 500 || minRating > 0 || inStockOnly
 
   return (
@@ -470,5 +470,13 @@ export default function ShopPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading...</div>}>
+      <ShopPageContent />
+    </Suspense>
   )
 }

@@ -34,9 +34,9 @@ npm i
 npm run dev
 ```
 
-## MCP Server (use TesterArmy from your coding agent)
+## MCP Server: Deepcrawl (use TesterArmy from your coding agent)
 
-In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server (`mcp/`) that exposes the same UI-testing capabilities to coding agents like Claude Code, Cursor, and Windsurf. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.tester-army/`).
+In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server — **Deepcrawl** (`mcp/`) — that exposes the same UI-testing capabilities to coding agents like Claude Code, Cursor, and Windsurf. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.deepcrawl/`).
 
 ### How it works
 The server exposes two tools that mirror the web app's **propose → review → run** flow:
@@ -56,14 +56,14 @@ npm run build
 
 Then register it. **Claude Code:**
 ```
-claude mcp add tester-army -- node /absolute/path/to/lahacks26/mcp/dist/index.js
+claude mcp add deepcrawl -- node /absolute/path/to/lahacks26/mcp/dist/index.js
 ```
 
 **Cursor / Windsurf** (add to `~/.cursor/mcp.json` or your IDE's equivalent):
 ```json
 {
   "mcpServers": {
-    "tester-army": {
+    "deepcrawl": {
       "command": "node",
       "args": ["/absolute/path/to/lahacks26/mcp/dist/index.js"],
       "env": {
@@ -76,4 +76,4 @@ claude mcp add tester-army -- node /absolute/path/to/lahacks26/mcp/dist/index.js
 }
 ```
 
-Then in your agent: *"Use tester-army to propose 3 tests covering the homepage of https://example.com."* See `mcp/README.md` for full details, limitations, and state layout.
+Then in your agent: *"Use deepcrawl to propose 3 tests covering the homepage of https://example.com."* See `mcp/README.md` for full details, limitations, and state layout.

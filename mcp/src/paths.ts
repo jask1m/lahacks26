@@ -2,10 +2,10 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { mkdirSync } from "node:fs";
 
-const ENV_OVERRIDE = "TESTER_ARMY_STATE_DIR";
+const ENV_OVERRIDE = "DEEPCRAWL_STATE_DIR";
 
 function defaultStateDir(): string {
-  return join(homedir(), ".tester-army");
+  return join(homedir(), ".deepcrawl");
 }
 
 export function getStateDir(): string {

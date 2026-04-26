@@ -52,7 +52,7 @@ function toErrorContent(err: unknown) {
 
 export function buildServer(): McpServer {
   const server = new McpServer({
-    name: "tester-army-mcp",
+    name: "deepcrawl-mcp",
     version: "0.1.0",
   });
 

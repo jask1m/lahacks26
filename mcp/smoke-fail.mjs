@@ -25,7 +25,7 @@ function loadDotEnv(file) {
 const env = {
   ...process.env,
   ...loadDotEnv(envFile),
-  TESTER_ARMY_STATE_DIR: resolve(__dirname, ".smoke-state"),
+  DEEPCRAWL_STATE_DIR: resolve(__dirname, ".smoke-state"),
 };
 
 const child = spawn(process.execPath, [resolve(__dirname, "dist/index.js")], {

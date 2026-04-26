@@ -1,10 +1,10 @@
 {
-  "name": "tester-army-mcp",
+  "name": "deepcrawl-mcp",
   "version": "0.1.0",
   "description": "MCP server that exposes TesterArmy's UI testing capabilities (generate workflows, run them in Browserbase, get structured failure reports) to coding agents like Claude Code, Cursor, and Windsurf.",
   "type": "module",
   "bin": {
-    "tester-army-mcp": "dist/index.js"
+    "deepcrawl-mcp": "dist/index.js"
   },
   "files": [
     "dist",

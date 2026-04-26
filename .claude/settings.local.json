@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__deepcrawl__propose_tests",
+      "WebFetch(domain:v0-ecommerce-demo-website-mu.vercel.app)",
+      "mcp__deepcrawl__run_tests"
+    ]
+  }
+}

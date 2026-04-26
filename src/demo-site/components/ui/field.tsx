@@ -153,6 +153,16 @@ function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
   )
 }
 
+function FieldMessage({ className, ...props }: React.ComponentProps<'p'>) {
+  return (
+    <p
+      data-slot="field-message"
+      className={cn('text-muted-foreground text-sm leading-normal font-normal', className)}
+      {...props}
+    />
+  )
+}
+
 function FieldSeparator({
   children,
   className,
@@ -237,6 +247,7 @@ export {
   FieldError,
   FieldGroup,
   FieldLegend,
+  FieldMessage,
   FieldSeparator,
   FieldSet,
   FieldContent,

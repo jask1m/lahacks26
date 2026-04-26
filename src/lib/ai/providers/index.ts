@@ -60,9 +60,10 @@ export async function getStructuredModel() {
   const cookieProvider = await getProviderFromCookies();
   const provider = cookieProvider ?? getAIProvider();
 
-  // Google's gemma API model currently fails for generateObject/json mode.
-  // Fall back to Claude for structured outputs.
-  if (provider === "gemma-api") {
+  // Gemma models (Google's hosted API and self-hosted via Vultr/Ollama) are
+  // unreliable for generateObject/json mode — strict-schema decoding either
+  // fails or returns malformed JSON. Fall back to Claude for structured outputs.
+  if (provider === "gemma-api" || provider === "gemma-vultr") {
     return (await import("./claude")).getClaudeModel();
   }
 
