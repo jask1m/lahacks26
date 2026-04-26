@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getModel } from "@/lib/ai/providers";
+import { getStructuredModel } from "@/lib/ai/providers";
 import { z } from "zod";
 import { ANALYZE_FAILURE_SYSTEM_PROMPT } from "./prompts";
 import { TestStep } from "@/lib/supabase/types";
@@ -87,7 +87,7 @@ export async function analyzeStepFailure(
   ctx: AnalyzeFailureContext
 ): Promise<FailureAnalysis> {
   const { object } = await generateObject({
-    model: await getModel(),
+    model: await getStructuredModel(),
     schema: analysisSchema,
     system: ANALYZE_FAILURE_SYSTEM_PROMPT,
     prompt: buildPrompt(ctx),

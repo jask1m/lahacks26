@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getModel } from "@/lib/ai/providers";
+import { getStructuredModel } from "@/lib/ai/providers";
 import { z } from "zod";
 import type { TestStep } from "@/lib/supabase/types";
 import {
@@ -190,7 +190,7 @@ export async function compileStepForExecution(
 
   try {
     const { object } = await generateObject({
-      model: await getModel(),
+      model: await getStructuredModel(),
       schema: executableActionsSchema,
       system: STEP_COMPILER_SYSTEM_PROMPT,
       prompt: `Website: ${websiteUrl}
@@ -221,7 +221,7 @@ export async function generateTestSteps(
 ) {
   void authConfigured;
   const { object } = await generateObject({
-    model: await getModel(),
+    model: await getStructuredModel(),
     schema: testStepsSchema,
     system: GENERATE_STEPS_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}

@@ -56,3 +56,15 @@ export async function getModel() {
       return (await import("./claude")).getClaudeModel();
   }
 }
+export async function getStructuredModel() {
+  const cookieProvider = await getProviderFromCookies();
+  const provider = cookieProvider ?? getAIProvider();
+
+  // Google's gemma API model currently fails for generateObject/json mode.
+  // Fall back to Claude for structured outputs.
+  if (provider === "gemma-api") {
+    return (await import("./claude")).getClaudeModel();
+  }
+
+  return getModel();
+}

@@ -52,7 +52,7 @@ export function StepNode({ step, onEdit, onDelete, autoFocus }: StepNodeProps) {
 
   return (
     <div
-      className={`group relative bg-white rounded-[10px] w-full max-w-[520px] transition-all cursor-text ${
+      className={`group relative bg-white rounded-[10px] w-[260px] transition-all cursor-text ${
         editing
           ? "border-[oklch(0.68_0.18_255/0.4)] shadow-[0_0_0_3px_oklch(0.68_0.18_255/0.08),0_4px_16px_rgba(0,0,0,0.1)]"
           : "border-canvas-border hover:border-canvas-border-hover shadow-[0_1px_3px_rgba(0,0,0,0.07),0_4px_12px_rgba(0,0,0,0.05)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.08)]"

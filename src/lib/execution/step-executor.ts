@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { getModel } from "@/lib/ai/providers";
+import { getStructuredModel } from "@/lib/ai/providers";
 import { access } from "node:fs/promises";
 import path from "node:path";
 import type { Page } from "playwright-core";
@@ -653,7 +653,7 @@ async function executeModelAuthPlan(
 ) {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: await getModel(),
+    model: await getStructuredModel(),
     schema: executableActionsSchema,
     system: `You build deterministic browser actions for a workflow auth block.
 
@@ -793,7 +793,7 @@ export async function translateStepWithFallback(
 ): Promise<ExecutableAction[]> {
   const snapshot = await getCompactPageSnapshot(page);
   const { object } = await generateObject({
-    model: await getModel(),
+    model: await getStructuredModel(),
     schema: executableActionsSchema,
     system: EXECUTOR_SYSTEM_PROMPT,
     prompt: `Current page snapshot:
@@ -1101,7 +1101,7 @@ export async function executeActions(
       const message = err instanceof Error ? err.message : String(err);
       return {
         success: false,
-        details: `Failed at "${action.description}": ${message}`,
+        details: `Failed at "${action.description}": ${err instanceof Error ? err.message : String(err)}`,
         completedActions: results,
         failingAction: action,
         rawErrorMessage: message,

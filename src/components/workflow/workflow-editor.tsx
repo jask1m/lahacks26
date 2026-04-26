@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TestStep } from "@/lib/supabase/types";
 import { StepNode } from "./step-node";
 import { AddNodeButton } from "./add-node-button";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Play, Save } from "lucide-react";
 import { CanvasViewport } from "./canvas-viewport";
 import { v4 as uuidv4 } from "uuid";
+import { calcLayout, calcConnectors, NODE_WIDTH } from "./zigzag-layout";
+import { SvgConnectors } from "./svg-connectors";
 
 interface WorkflowEditorProps {
   testName: string;
@@ -18,10 +20,6 @@ interface WorkflowEditorProps {
   onRun: () => void;
   saving?: boolean;
   toolbarActions?: React.ReactNode;
-}
-
-function Connector() {
-  return <div className="w-[1.5px] h-6 bg-canvas-connector" />;
 }
 
 export function WorkflowEditor({
@@ -35,6 +33,9 @@ export function WorkflowEditor({
 }: WorkflowEditorProps) {
   const [modalInsertIndex, setModalInsertIndex] = useState<number | null>(null);
   const [autoFocusId, setAutoFocusId] = useState<string | null>(null);
+
+  const layout = useMemo(() => calcLayout(steps.length), [steps.length]);
+  const connectors = useMemo(() => calcConnectors(layout), [layout]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -95,11 +96,25 @@ export function WorkflowEditor({
 
       {/* Canvas workflow area */}
       <CanvasViewport className="flex-1 bg-bg-0">
-        <div className="flex flex-col items-center py-10 px-4" data-no-pan>
-          {/* Trigger */}
+        <div
+          data-no-pan
+          style={{
+            position: "relative",
+            width: layout.totalWidth,
+            height: layout.totalHeight,
+          }}
+        >
+          {/* SVG bezier connectors */}
+          <SvgConnectors layout={layout} />
+
+          {/* Trigger node */}
           <div
-            className="flex items-center gap-2.5 px-[18px] py-2.5 bg-white border-dashed rounded-full font-mono text-[12px] max-w-[520px] w-full"
+            className="flex items-center gap-2.5 px-[18px] py-2.5 bg-white border-dashed rounded-full font-mono text-[12px]"
             style={{
+              position: "absolute",
+              left: layout.trigger.x,
+              top: layout.trigger.y,
+              width: NODE_WIDTH,
               borderWidth: "1.5px",
               borderColor: "rgba(0,0,0,0.18)",
               color: "rgba(0,0,0,0.4)",
@@ -110,15 +125,19 @@ export function WorkflowEditor({
               <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.2"/>
               <path d="M7.5 5v3M7.5 10v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
-            {testName}
+            <span className="truncate">{testName}</span>
           </div>
 
-          {/* Steps with connectors and + buttons */}
+          {/* Step nodes */}
           {steps.map((step, index) => (
-            <div key={step.id} className="flex flex-col items-center w-full max-w-[520px]">
-              <Connector />
-              <AddNodeButton onClick={() => setModalInsertIndex(index)} />
-              <Connector />
+            <div
+              key={step.id}
+              style={{
+                position: "absolute",
+                left: layout.steps[index].x,
+                top: layout.steps[index].y,
+              }}
+            >
               <StepNode
                 step={step}
                 onEdit={handleEdit}
@@ -128,11 +147,32 @@ export function WorkflowEditor({
             </div>
           ))}
 
-          {/* Final + button and End node */}
-          <Connector />
-          <AddNodeButton onClick={() => setModalInsertIndex(steps.length)} />
-          <Connector />
-          <div className="flex items-center gap-[7px]" style={{ color: "rgba(0,0,0,0.3)" }}>
+          {/* Add buttons at connector midpoints */}
+          {connectors.map((c, i) => (
+            <div
+              key={`add-${i}`}
+              style={{
+                position: "absolute",
+                left: c.midpoint.x,
+                top: c.midpoint.y,
+                transform: "translate(-50%, -50%)",
+                zIndex: 10,
+              }}
+            >
+              <AddNodeButton onClick={() => setModalInsertIndex(i)} />
+            </div>
+          ))}
+
+          {/* End node */}
+          <div
+            className="flex items-center gap-[7px]"
+            style={{
+              position: "absolute",
+              left: layout.end.x,
+              top: layout.end.y,
+              color: "rgba(0,0,0,0.3)",
+            }}
+          >
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none">
               <circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.2"/>
               <path d="M5 7.5l2 2 3.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
