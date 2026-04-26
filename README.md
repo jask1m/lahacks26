@@ -34,7 +34,7 @@ npm i
 npm run dev
 ```
 
-## MCP Server: Deepcrawl (use TesterArmy from your coding agent)
+## MCP Server: Deepcrawl 
 
 In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server — **Deepcrawl** (`mcp/`) — that exposes the same UI-testing capabilities to coding agents like Claude Code, Cursor, and Windsurf. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.deepcrawl/`).
 
