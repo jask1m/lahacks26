@@ -154,7 +154,7 @@ const proposeTests: ToolDefinition<z.infer<typeof proposeTestsSchema>, unknown> 
       projectReused,
       tests: persisted.map(testProposal),
       reviewInstructions:
-        "Render this suite to the user as a concise summary (test names + step bullets). Include an explicit one-line invitation such as \"Reply with any edits (rename, reword, change/add/remove steps) or I'll run it as-is.\" so the user clearly knows editing is an option. Then call `run_tests` with this `suiteId` immediately — do NOT add your own \"does this look good?\" or \"approve?\" question, because the host application's tool-approval prompt on the `run_tests` call is the user's single confirmation gate. If the user interrupts with edits before you make that call, pass them via the `tests` override array on `run_tests`.",
+        "Render this suite to the user as a concise summary (test names + step bullets), then end with the exact line: \"Reply with any edits (rename, reword, change/add/remove steps) or say 'run' and I'll execute it as-is.\" STOP after that line. Do NOT call `run_tests` in this turn. Wait for the user's typed reply before calling `run_tests` — either apply their edits via the `tests` override array, or proceed only after an explicit affirmative ('run', 'go', 'yes', 'lgtm', etc.). The host's tool-approval dialog is not a reliable confirmation gate; the user's typed reply is.",
       warnings: authTests.length
         ? [
             `Tests ${authTests.join(

@@ -3,6 +3,7 @@ import { getStructuredModel } from "@/lib/ai/providers";
 import { z } from "zod";
 import type { TestStep } from "@/lib/supabase/types";
 import {
+  executableActionSchema,
   executableActionsSchema,
   type ExecutableAction,
 } from "@/lib/execution/actions";
@@ -228,41 +229,198 @@ export async function generateTestSteps(
 Test description: ${description}`,
   });
 
-  const compiledSteps = await Promise.all(
-    object.steps.map(async (step) => {
-      const compilation = await compileStepForExecution(websiteUrl, step);
-
-      return {
-        ...step,
-        compiledActions: compilation.compiledActions,
-        compileStatus: compilation.compileStatus ?? "pending",
-        compileVersion: COMPILE_VERSION,
-        compileNotes: compilation.compileNotes,
-        fallbackPolicy: "llm_on_failure" as const,
-      };
-    })
-  );
+  const compiledSteps = await compileStepBatch(websiteUrl, object.steps);
 
   return compiledSteps;
+}
+
+const BATCH_COMPILE_LIMIT = 30;
+
+const batchedCompileSchema = z.object({
+  steps: z.array(
+    z.object({
+      index: z.number().int(),
+      actions: z.array(executableActionSchema),
+    })
+  ),
+});
+
+const BATCH_COMPILER_SYSTEM_PROMPT = `${STEP_COMPILER_SYSTEM_PROMPT}
+
+You will receive multiple steps in one call. Return a "steps" array containing exactly one entry per input index, preserving the original index values. Each entry's "actions" must be the deterministic action list for that step alone.`;
+
+async function compileStepsBatched(
+  websiteUrl: string,
+  steps: ReadonlyArray<{
+    index: number;
+    type: "act" | "assert";
+    description: string;
+  }>
+): Promise<Map<number, ExecutableAction[]>> {
+  const result = new Map<number, ExecutableAction[]>();
+  if (steps.length === 0) return result;
+
+  const lines = steps
+    .map((s) => `- index=${s.index} (${s.type}): ${s.description}`)
+    .join("\n");
+
+  const { object } = await generateObject({
+    model: await getStructuredModel(),
+    schema: batchedCompileSchema,
+    system: BATCH_COMPILER_SYSTEM_PROMPT,
+    prompt: `Website: ${websiteUrl}
+
+Compile each step below into deterministic actions. Return one object per input index, preserving indices.
+
+Steps:
+${lines}`,
+  });
+
+  const requestedIndices = new Set(steps.map((s) => s.index));
+  for (const entry of object.steps) {
+    if (requestedIndices.has(entry.index) && Array.isArray(entry.actions)) {
+      result.set(entry.index, entry.actions);
+    }
+  }
+  return result;
+}
+
+type RawStep = {
+  type: "act" | "assert" | "auth";
+  description: string;
+};
+
+type CompiledStep = RawStep & {
+  compiledActions?: ExecutableAction[];
+  compileStatus: NonNullable<
+    Awaited<ReturnType<typeof compileStepForExecution>>["compileStatus"]
+  >;
+  compileVersion: number;
+  compileNotes?: string;
+  fallbackPolicy: "llm_on_failure";
+};
+
+async function compileStepBatch(
+  websiteUrl: string,
+  rawSteps: ReadonlyArray<RawStep>
+): Promise<CompiledStep[]> {
+  const out: CompiledStep[] = new Array(rawSteps.length);
+  const needsModel: {
+    index: number;
+    type: "act" | "assert";
+    description: string;
+  }[] = [];
+  let heuristicHits = 0;
+
+  rawSteps.forEach((step, i) => {
+    if (step.type === "auth") {
+      out[i] = {
+        ...step,
+        compileStatus: "compiled",
+        compileVersion: COMPILE_VERSION,
+        compileNotes: "Auth steps use the configured auth executor.",
+        fallbackPolicy: "llm_on_failure",
+      };
+      return;
+    }
+
+    const heuristic = tryCompileHeuristically(websiteUrl, step);
+    if (heuristic) {
+      heuristicHits++;
+      out[i] = {
+        ...step,
+        compiledActions: heuristic,
+        compileStatus: "compiled",
+        compileVersion: COMPILE_VERSION,
+        compileNotes:
+          "Compiled without a model call using a deterministic heuristic.",
+        fallbackPolicy: "llm_on_failure",
+      };
+      return;
+    }
+
+    needsModel.push({ index: i, type: step.type, description: step.description });
+  });
+
+  const batchResults = new Map<number, ExecutableAction[]>();
+  let batchErrors = 0;
+  const startedAt = Date.now();
+
+  for (let i = 0; i < needsModel.length; i += BATCH_COMPILE_LIMIT) {
+    const chunk = needsModel.slice(i, i + BATCH_COMPILE_LIMIT);
+    try {
+      const partial = await compileStepsBatched(websiteUrl, chunk);
+      partial.forEach((actions, idx) => batchResults.set(idx, actions));
+    } catch (error) {
+      batchErrors++;
+      console.error(
+        `[compileStepBatch] batched call failed for chunk size ${chunk.length}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  const fallbackTargets = needsModel.filter((s) => !batchResults.has(s.index));
+  const fallbackResults = await Promise.all(
+    fallbackTargets.map(async (s) => ({
+      index: s.index,
+      compilation: await compileStepForExecution(websiteUrl, {
+        type: s.type,
+        description: s.description,
+      }),
+    }))
+  );
+  const fallbackMap = new Map(
+    fallbackResults.map((r) => [r.index, r.compilation])
+  );
+
+  let batchedHits = 0;
+  let fallbackHits = 0;
+  for (const s of needsModel) {
+    const step = rawSteps[s.index];
+    const batched = batchResults.get(s.index);
+    if (batched) {
+      batchedHits++;
+      out[s.index] = {
+        ...step,
+        compiledActions: batched,
+        compileStatus: "compiled",
+        compileVersion: COMPILE_VERSION,
+        compileNotes: "Compiled in a batched model call.",
+        fallbackPolicy: "llm_on_failure",
+      };
+      continue;
+    }
+
+    fallbackHits++;
+    const fallback = fallbackMap.get(s.index);
+    out[s.index] = {
+      ...step,
+      compiledActions: fallback?.compiledActions,
+      compileStatus: fallback?.compileStatus ?? "pending",
+      compileVersion: COMPILE_VERSION,
+      compileNotes: fallback?.compileNotes
+        ? `Per-step fallback after batch miss: ${fallback.compileNotes}`
+        : "Per-step fallback after batch miss.",
+      fallbackPolicy: "llm_on_failure",
+    };
+  }
+
+  console.error(
+    `[compileStepBatch] total=${rawSteps.length} heuristic=${heuristicHits} batched=${batchedHits} fallback=${fallbackHits} batchErrors=${batchErrors} ms=${
+      Date.now() - startedAt
+    }`
+  );
+
+  return out;
 }
 
 async function compileGeneratedSteps(
   websiteUrl: string,
   steps: ReadonlyArray<{ type: "act" | "assert" | "auth"; description: string }>
-) {
-  return Promise.all(
-    steps.map(async (step) => {
-      const compilation = await compileStepForExecution(websiteUrl, step);
-      return {
-        ...step,
-        compiledActions: compilation.compiledActions,
-        compileStatus: compilation.compileStatus ?? "pending",
-        compileVersion: COMPILE_VERSION,
-        compileNotes: compilation.compileNotes,
-        fallbackPolicy: "llm_on_failure" as const,
-      };
-    })
-  );
+): Promise<CompiledStep[]> {
+  return compileStepBatch(websiteUrl, steps);
 }
 
 export interface GeneratedSuiteTest {
