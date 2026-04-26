@@ -190,7 +190,7 @@ export async function compileStepForExecution(
 
   try {
     const { object } = await generateObject({
-      model: getModel(),
+      model: await getModel(),
       schema: executableActionsSchema,
       system: STEP_COMPILER_SYSTEM_PROMPT,
       prompt: `Website: ${websiteUrl}
@@ -221,7 +221,7 @@ export async function generateTestSteps(
 ) {
   void authConfigured;
   const { object } = await generateObject({
-    model: getModel(),
+    model: await getModel(),
     schema: testStepsSchema,
     system: GENERATE_STEPS_SYSTEM_PROMPT,
     prompt: `Website: ${websiteUrl}

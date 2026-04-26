@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    runtime: nvidia
+    ports:
+      - "8000:8000"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    command: >
+      --model google/gemma-3-27b-it
+      --tensor-parallel-size 1
+      --max-model-len 8192
+      --gpu-memory-utilization 0.95
+      --dtype auto
+      --trust-remote-code
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  huggingface-cache:
