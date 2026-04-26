@@ -13,7 +13,7 @@ Teams want to test real user UI workflows without writing every test entirely in
 ## Workflow
 Add a URL, create UI test workflows in a visual interface or from natural language, and run those workflows through an agent-backed browser session.
 
-The system shows the exact flow, execution progress, and failure points so tests are reusable, debuggable, and understandable. There are many cusotmizable options such as branching workflows, reusable test templates, and execution modes.
+The system shows the exact flow, execution progress, and failure points so tests are reusable, debuggable, and understandable. There are many customizable options such as branching workflows, reusable test templates, and execution modes.
 
 ## Dev Setup
 
@@ -24,6 +24,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ANTHROPIC_API_KEY=
 BROWSERBASE_API_KEY=
 BROWSERBASE_PROJECT_ID=
+GEMMA_KEY=
+AI_PROVIDER=
+VULTR_GEMMA_URL=
 ```
 Then download packages and run app
 ```
