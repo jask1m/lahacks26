@@ -6,7 +6,7 @@ import {
   executableActionsSchema,
   type ExecutableAction,
 } from "@/lib/execution/actions";
-import { GENERATE_STEPS_SYSTEM_PROMPT } from "./prompts";
+import { GENERATE_STEPS_SYSTEM_PROMPT, GENERATE_TEST_SUITE_SYSTEM_PROMPT } from "./prompts";
 
 const COMPILE_VERSION = 1;
 
@@ -15,6 +15,21 @@ const testStepsSchema = z.object({
     z.object({
       type: z.enum(["act", "assert", "auth"]),
       description: z.string(),
+    })
+  ),
+});
+
+const testSuiteSchema = z.object({
+  tests: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      steps: z.array(
+        z.object({
+          type: z.enum(["act", "assert", "auth"]),
+          description: z.string(),
+        })
+      ),
     })
   ),
 });
@@ -195,6 +210,63 @@ Test description: ${description}`,
   );
 
   return compiledSteps;
+}
+
+async function compileGeneratedSteps(
+  websiteUrl: string,
+  steps: ReadonlyArray<{ type: "act" | "assert" | "auth"; description: string }>
+) {
+  return Promise.all(
+    steps.map(async (step) => {
+      const compilation = await compileStepForExecution(websiteUrl, step);
+      return {
+        ...step,
+        compiledActions: compilation.compiledActions,
+        compileStatus: compilation.compileStatus ?? "pending",
+        compileVersion: COMPILE_VERSION,
+        compileNotes: compilation.compileNotes,
+        fallbackPolicy: "llm_on_failure" as const,
+      };
+    })
+  );
+}
+
+export interface GeneratedSuiteTest {
+  name: string;
+  description: string;
+  steps: Awaited<ReturnType<typeof compileGeneratedSteps>>;
+}
+
+/**
+ * Generate `count` distinct, non-overlapping tests from a single high-level
+ * intent in one Claude call. The model sees all candidates at once so it can
+ * deduplicate and cover happy/error/edge paths coherently.
+ */
+export async function generateTestSuite(
+  websiteUrl: string,
+  intent: string,
+  count: number
+): Promise<GeneratedSuiteTest[]> {
+  const clamped = Math.max(1, Math.min(10, Math.floor(count)));
+  const { object } = await generateObject({
+    model: anthropic("claude-sonnet-4-20250514"),
+    schema: testSuiteSchema,
+    system: GENERATE_TEST_SUITE_SYSTEM_PROMPT,
+    prompt: `Website: ${websiteUrl}
+Suite intent: ${intent}
+Number of tests to propose: ${clamped}
+
+Produce exactly ${clamped} distinct tests covering different behaviors implied by the intent.`,
+  });
+
+  const trimmed = object.tests.slice(0, clamped);
+  return Promise.all(
+    trimmed.map(async (test) => ({
+      name: test.name,
+      description: test.description,
+      steps: await compileGeneratedSteps(websiteUrl, test.steps),
+    }))
+  );
 }
 
 export { COMPILE_VERSION };

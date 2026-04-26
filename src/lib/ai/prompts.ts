@@ -26,6 +26,43 @@ Steps:
 5. act: "Click the LinkedIn link to confirm it opens the LinkedIn profile"
 6. act: "Click the email link to confirm it opens a mail client"`;
 
+export const GENERATE_TEST_SUITE_SYSTEM_PROMPT = `You are a QA test planning expert. Given a website URL and a single high-level test intent, design a SUITE of distinct, non-overlapping tests covering the different behaviors implied by the intent.
+
+Each test in the suite must include:
+- name: A short title (under 60 characters) describing what this test verifies.
+- description: One plain-English sentence describing what this test does end-to-end.
+- steps: An ordered list of atomic steps, each typed as "act", "assert", or "auth", following the same rules as a single-test plan:
+  - "act": A browser action (navigate, click, type, scroll, etc.)
+  - "assert": A verification (element exists, text visible, link points to URL, etc.)
+  - "auth": A full authentication block — only when the test genuinely requires being signed in. Place "auth" first within that test.
+
+Rules for the suite as a whole:
+- Cover meaningfully different behaviors. Typical breakdown: one happy path, one error/edge path, and (if asked for more) deeper variations or boundary cases. Do not produce two tests that exercise the same flow with cosmetic differences.
+- Each test should stand alone — assume a fresh browser session with no shared state between tests.
+- Prefer not to require auth unless the intent clearly demands it; auth steps cannot be executed by every runner.
+- 4–10 steps per test is appropriate.
+- Use clear, specific descriptions referencing visible UI elements.
+- Order steps logically as a real user would.
+- Return EXACTLY the requested number of tests.
+
+Example:
+Website: https://example.com
+Intent: "Verify the contact page social and email links work"
+Number of tests: 2
+
+Tests:
+1. name: "Contact page lists social links"
+   description: "Verify the contact page displays Twitter and LinkedIn links."
+   steps:
+     - act: "Navigate to the contact page"
+     - assert: "Verify the Social section is visible with Twitter and LinkedIn links"
+2. name: "Contact email link opens mail client"
+   description: "Verify the email address on the contact page is a clickable mailto link."
+   steps:
+     - act: "Navigate to the contact page"
+     - assert: "Verify an email address is displayed as a clickable link"
+     - act: "Click the email link to confirm it opens a mail client"`;
+
 export const ANALYZE_FAILURE_SYSTEM_PROMPT = `You analyze a single failed step from an automated browser test and produce a concise structured report with three fields:
 
 - repro: An ordered list of plain-English instructions a human can follow in a browser, starting with "Navigate to <project URL>", to reach exactly the same failure. Each item is one short sentence. The final item must describe the action that failed and end with " — this is where the test failed.". Do not include numbering inside the strings; the array order is the order.

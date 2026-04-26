@@ -805,21 +805,6 @@ Translate this single failing step into fallback actions.`,
   return object.actions;
 }
 
-export type ExecutedAction = z.infer<typeof actionSchema>["actions"][number];
-
-export type ExecuteActionsResult =
-  | {
-      success: true;
-      details: string;
-      completedActions: string[];
-    }
-  | {
-      success: false;
-      completedActions: string[];
-      failingAction: ExecutedAction;
-      rawErrorMessage: string;
-    };
-
 function normalizeTextForMatch(text: string): string {
   return text.replace(/\s+/g, " ").trim().toLowerCase();
 }

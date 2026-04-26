@@ -653,7 +653,7 @@ export async function executeTestRun(runId: string, test: ExecutableTest) {
         : await createRemoteBrowser();
 
     browser = runtime.browser;
-    if ("sessionId" in runtime) {
+    if ("sessionId" in runtime && typeof runtime.sessionId === "string") {
       remoteSessionId = runtime.sessionId;
     }
 

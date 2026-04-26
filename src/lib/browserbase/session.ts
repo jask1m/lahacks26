@@ -1,10 +1,22 @@
 import Browserbase from "@browserbasehq/sdk";
 
-const bb = new Browserbase({
-  apiKey: process.env.BROWSERBASE_API_KEY!,
-});
+let cachedClient: Browserbase | null = null;
+
+function getClient(): Browserbase {
+  if (!cachedClient) {
+    cachedClient = new Browserbase({
+      apiKey: process.env.BROWSERBASE_API_KEY!,
+    });
+  }
+  return cachedClient;
+}
+
+export function buildSessionReplayUrl(sessionId: string): string {
+  return `https://www.browserbase.com/sessions/${sessionId}`;
+}
 
 export async function createBrowserSession() {
+  const bb = getClient();
   const session = await bb.sessions.create({
     projectId: process.env.BROWSERBASE_PROJECT_ID!,
   });
@@ -15,12 +27,13 @@ export async function createBrowserSession() {
     sessionId: session.id,
     connectUrl: session.connectUrl,
     liveViewUrl: debugUrls.debuggerFullscreenUrl,
+    sessionReplayUrl: buildSessionReplayUrl(session.id),
   };
 }
 
 export async function stopBrowserSession(sessionId: string) {
   try {
-    await bb.sessions.update(sessionId, { status: "REQUEST_RELEASE" });
+    await getClient().sessions.update(sessionId, { status: "REQUEST_RELEASE" });
   } catch {
     // Session may already be stopped; ignore.
   }

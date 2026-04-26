@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "1216509a-4e28-4120-8bbb-a3404561ebce",
+      "name": "example.com",
+      "url": "https://example.com/",
+      "executionMode": "browserbase",
+      "createdAt": "2026-04-25T22:21:59.014Z"
+    }
+  ],
+  "tests": [
+    {
+      "id": "be70b901-3ede-4169-9ff1-b0345d9eea8b",
+      "projectId": "1216509a-4e28-4120-8bbb-a3404561ebce",
+      "name": "Verify the page contains the heading text 'Example Domain'.",
+      "description": "Verify the page contains the heading text 'Example Domain'.",
+      "steps": [
+        {
+          "id": "b3555cd0-958f-486b-9025-68d56b94471a",
+          "type": "act",
+          "description": "Navigate to https://example.com/",
+          "compiledActions": [
+            {
+              "action": "navigate",
+              "url": "https://example.com/",
+              "description": "Navigate to https://example.com/"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        },
+        {
+          "id": "dfdd1b77-a129-4f37-a8d0-bc00dffcafea",
+          "type": "assert",
+          "description": "Verify the page contains the heading text 'Example Domain'",
+          "compiledActions": [
+            {
+              "action": "assertText",
+              "value": "Example Domain",
+              "description": "Verify the page contains the heading text 'Example Domain'"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        }
+      ],
+      "createdAt": "2026-04-25T22:22:02.354Z"
+    },
+    {
+      "id": "7b1326f8-a7c6-4ad0-a193-addf56282df3",
+      "projectId": "1216509a-4e28-4120-8bbb-a3404561ebce",
+      "name": "Verify the page contains the exact text 'This sentence absol...",
+      "description": "Verify the page contains the exact text 'This sentence absolutely does not appear on example.com 12345 zxcv'.",
+      "steps": [
+        {
+          "id": "def43c39-6767-41b1-a7bf-0e74c0841314",
+          "type": "act",
+          "description": "Navigate to https://example.com/",
+          "compiledActions": [
+            {
+              "action": "navigate",
+              "url": "https://example.com/",
+              "description": "Navigate to https://example.com/"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        },
+        {
+          "id": "036d0eeb-60d3-42bf-b130-4e7d897508b1",
+          "type": "assert",
+          "description": "Verify the page contains the exact text 'This sentence absolutely does not appear on example.com 12345 zxcv'",
+          "compiledActions": [
+            {
+              "action": "assertText",
+              "value": "This sentence absolutely does not appear on example.com 12345 zxcv",
+              "description": "Verify the page contains the exact text 'This sentence absolutely does not appear on example.com 12345 zxcv'"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        }
+      ],
+      "createdAt": "2026-04-25T22:22:45.076Z"
+    },
+    {
+      "id": "385c09db-2891-4194-a8c3-680e7aea9e6a",
+      "projectId": "1216509a-4e28-4120-8bbb-a3404561ebce",
+      "name": "Verify the page contains the heading text 'Example Domain'.",
+      "description": "Verify the page contains the heading text 'Example Domain'.",
+      "steps": [
+        {
+          "id": "ba9c0210-fab6-4cd7-93af-c1b128acc38a",
+          "type": "act",
+          "description": "Navigate to https://example.com/",
+          "compiledActions": [
+            {
+              "action": "navigate",
+              "url": "https://example.com/",
+              "description": "Navigate to https://example.com/"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        },
+        {
+          "id": "d67fb995-47ec-4dd8-bbc0-5261ba02ba8c",
+          "type": "assert",
+          "description": "Verify the page contains the heading text 'Example Domain'",
+          "compiledActions": [
+            {
+              "action": "assertText",
+              "value": "Example Domain",
+              "description": "Verify the page contains the heading text 'Example Domain'"
+            }
+          ],
+          "compileStatus": "compiled",
+          "compileVersion": 1,
+          "compileNotes": "Compiled from the natural-language step.",
+          "fallbackPolicy": "llm_on_failure"
+        }
+      ],
+      "createdAt": "2026-04-25T22:38:31.013Z"
+    }
+  ],
+  "runs": [
+    {
+      "id": "7d676945-fba0-4c0a-b006-f5a335c0ec8a",
+      "testId": "be70b901-3ede-4169-9ff1-b0345d9eea8b",
+      "status": "passed",
+      "startedAt": "2026-04-25T22:22:02.366Z",
+      "steps": [
+        {
+          "stepIndex": 0,
+          "status": "passed",
+          "startedAt": "2026-04-25T22:22:03.140Z",
+          "details": "{\n  \"mode\": \"compiled\",\n  \"fallbackUsed\": false,\n  \"completed\": [\n    \"Navigated to https://example.com/\"\n  ]\n}",
+          "screenshotPath": "C:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\7d676945-fba0-4c0a-b006-f5a335c0ec8a\\step-0.png",
+          "completedAt": "2026-04-25T22:22:03.934Z"
+        },
+        {
+          "stepIndex": 1,
+          "status": "passed",
+          "startedAt": "2026-04-25T22:22:03.947Z",
+          "details": "{\n  \"mode\": \"compiled\",\n  \"fallbackUsed\": false,\n  \"completed\": [\n    \"Verified text: \\\"Example Domain\\\"\"\n  ]\n}",
+          "screenshotPath": "C:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\7d676945-fba0-4c0a-b006-f5a335c0ec8a\\step-1.png",
+          "completedAt": "2026-04-25T22:22:04.540Z"
+        }
+      ],
+      "liveViewUrl": "https://www.browserbase.com/devtools-fullscreen/inspector.html?wss=connect-v2.usw2.browserbase.com/debug/a7dcd2fd-64ad-4de4-bb44-a908c8cbb64a/devtools/page/C9ACC4E08EC63AF8AAB18AB93D0E4E0A?debug=true",
+      "completedAt": "2026-04-25T22:22:14.744Z"
+    },
+    {
+      "id": "adeb5609-0a96-44ff-917a-ded04e778554",
+      "testId": "7b1326f8-a7c6-4ad0-a193-addf56282df3",
+      "status": "failed",
+      "startedAt": "2026-04-25T22:22:45.086Z",
+      "steps": [
+        {
+          "stepIndex": 0,
+          "status": "passed",
+          "startedAt": "2026-04-25T22:22:45.864Z",
+          "details": "{\n  \"mode\": \"compiled\",\n  \"fallbackUsed\": false,\n  \"completed\": [\n    \"Navigated to https://example.com/\"\n  ]\n}",
+          "screenshotPath": "C:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\adeb5609-0a96-44ff-917a-ded04e778554\\step-0.png",
+          "completedAt": "2026-04-25T22:22:47.208Z"
+        },
+        {
+          "stepIndex": 1,
+          "status": "failed",
+          "startedAt": "2026-04-25T22:22:47.210Z",
+          "details": "{\"version\":2,\"repro\":[\"Navigate to https://example.com/\",\"Look for the exact text 'This sentence absolutely does not appear on example.com 12345 zxcv' on the page — this is where the test failed.\"],\"cause\":\"The test failed because the expected text 'This sentence absolutely does not appear on example.com 12345 zxcv' does not exist anywhere on the example.com page. The assertion was looking for an exact text match that is not present in the page content.\",\"fix\":\"The test step should be updated to look for text that actually exists on the example.com page, or the test should be pointed to a different URL that contains the expected text.\",\"raw\":\"Text not found on page: \\\"This sentence absolutely does not appear on example.com 12345 zxcv\\\"\"}",
+          "screenshotPath": "C:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\adeb5609-0a96-44ff-917a-ded04e778554\\step-1.png",
+          "completedAt": "2026-04-25T22:22:52.736Z"
+        }
+      ],
+      "liveViewUrl": "https://www.browserbase.com/devtools-fullscreen/inspector.html?wss=connect-v2.usw2.browserbase.com/debug/71c5198b-28c7-49d4-8e36-d8d45dd63f62/devtools/page/AFAA6A5E1788E915D4727F989ADFD12B?debug=true",
+      "completedAt": "2026-04-25T22:23:03.039Z",
+      "failure": {
+        "version": 2,
+        "repro": [
+          "Navigate to https://example.com/",
+          "Look for the exact text 'This sentence absolutely does not appear on example.com 12345 zxcv' on the page — this is where the test failed."
+        ],
+        "cause": "The test failed because the expected text 'This sentence absolutely does not appear on example.com 12345 zxcv' does not exist anywhere on the example.com page. The assertion was looking for an exact text match that is not present in the page content.",
+        "fix": "The test step should be updated to look for text that actually exists on the example.com page, or the test should be pointed to a different URL that contains the expected text.",
+        "raw": "Text not found on page: \"This sentence absolutely does not appear on example.com 12345 zxcv\""
+      }
+    },
+    {
+      "id": "f79549e1-62db-4357-83c1-1d2dbb044568",
+      "testId": "385c09db-2891-4194-a8c3-680e7aea9e6a",
+      "status": "passed",
+      "startedAt": "2026-04-25T22:38:31.030Z",
+      "steps": [
+        {
+          "stepIndex": 0,
+          "status": "passed",
+          "startedAt": "2026-04-25T22:38:31.729Z",
+          "details": "{\n  \"mode\": \"compiled\",\n  \"fallbackUsed\": false,\n  \"completed\": [\n    \"Navigated to https://example.com/\"\n  ]\n}",
+          "screenshotPath": "c:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\f79549e1-62db-4357-83c1-1d2dbb044568\\step-0.png",
+          "completedAt": "2026-04-25T22:38:32.461Z"
+        },
+        {
+          "stepIndex": 1,
+          "status": "passed",
+          "startedAt": "2026-04-25T22:38:32.466Z",
+          "details": "{\n  \"mode\": \"compiled\",\n  \"fallbackUsed\": false,\n  \"completed\": [\n    \"Verified text: \\\"Example Domain\\\"\"\n  ]\n}",
+          "screenshotPath": "c:\\Programming\\lahacks26\\mcp\\.smoke-state\\runs\\f79549e1-62db-4357-83c1-1d2dbb044568\\step-1.png",
+          "completedAt": "2026-04-25T22:38:33.196Z"
+        }
+      ],
+      "liveViewUrl": "https://www.browserbase.com/devtools-fullscreen/inspector.html?wss=connect-v2.usw2.browserbase.com/debug/9418afcd-5992-4032-98a8-35adc1c51689/devtools/page/73CB349CDE6737BB53197FF06F15E405?debug=true",
+      "completedAt": "2026-04-25T22:38:43.420Z"
+    }
+  ]
+}
