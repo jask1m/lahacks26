@@ -1,9 +1,16 @@
-## Summary
-Making UI testing easy.
-  
-Define reusable test flows, watch agents execute them, and inspect exactly where a run passed or failed.
+# DeepCrawl
+[![status](https://img.shields.io/badge/status-active-success)](#)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![stack](https://img.shields.io/badge/stack-Next.js%20%7C%20Node%20%7C%20AI-black)](#)
 
-The core idea is to combine the speed and flexibility of automated AI testing with the reliability and visibility of a structured testing framework.
+### AI-Powered UI Testing, Reimagined
+
+Define reusable UI test flows, execute them with AI agents, and gain precise visibility into where each run succeeds or fails.
+
+DeepCrawl combines the speed and adaptability of AI-driven automation with the reliability, structure, and transparency of a modern testing framework.
+
+## Overview
+![DeepCrawl Diagram](assets/diagram.png "DeepCrawl diagram").
 
 ## Problem We Solve
 Existing UI testing tools are either too manual and brittle or too opaque when AI agents are involved.
@@ -34,19 +41,11 @@ npm i
 npm run dev
 ```
 
-## MCP Server: Deepcrawl 
+## MCP Server: DeepCrawl
 
-In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server — **Deepcrawl** (`mcp/`) — that exposes the same UI-testing capabilities to coding agents like Claude Code, Cursor, and Windsurf. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.deepcrawl/`).
+In addition to the web app, TesterArmy ships an [MCP](https://modelcontextprotocol.io/) server — **Deepcrawl** (`mcp/`) — that exposes the same UI-testing capabilities to coding agents like Claude Code, Codex, etc. It runs locally as a standalone Node process — no Next.js, Supabase, or DB required (state lives in `~/.deepcrawl/`).
 
-### How it works
-The server exposes two tools that mirror the web app's **propose → review → run** flow:
-
-- `propose_tests({ url, intent, count?, name? })` — generates a suite of distinct draft tests for the given URL and intent, persisted under a shared `suiteId`. The agent renders the steps to you and invites edits.
-- `run_tests({ suiteId, tests?, timeoutMsPerTest? })` — runs every test in the suite in its own fresh Browserbase session. Returns per-test pass/fail, a durable `recordingUrl` (session replay), and on failure a structured `{ repro, cause, fix }` report. Pass `tests` to apply your edits before running.
-
-The host application's approval prompt on `run_tests` is the single confirmation gate — you can reply with edits before approving, or say "run it as-is."
-
-### Add it to an agent
+### Setup
 Build the server once:
 ```
 cd mcp
@@ -54,7 +53,9 @@ npm i
 npm run build
 ```
 
-Then register it. **Claude Code:**
+Then register it. 
+
+**Claude Code:**
 ```
 claude mcp add deepcrawl -- node /absolute/path/to/lahacks26/mcp/dist/index.js
 ```
