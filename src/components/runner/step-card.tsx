@@ -244,6 +244,7 @@ export function StepCard({ step, runStep, index }: StepCardProps) {
               className="mt-2 rounded-[5px] border border-border bg-bg-3 overflow-hidden cursor-pointer hover:opacity-90"
               onClick={(e) => { e.stopPropagation(); window.open(runStep.screenshot_url!, "_blank"); }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={runStep.screenshot_url}
                 alt="Step screenshot"

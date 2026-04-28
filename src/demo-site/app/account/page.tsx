@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, Mail, Phone, MapPin, Edit2, Check, X } from 'lucide-react'
+import { Mail, Phone, MapPin, Edit2, Check, X } from 'lucide-react'
 import { Button } from '@/demo-site/components/ui/button'
 import { Input } from '@/demo-site/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/demo-site/components/ui/card'

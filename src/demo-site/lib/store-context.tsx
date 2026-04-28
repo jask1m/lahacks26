@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
-import { type Product, type CartItem, products } from './mock-data'
+import { type Product, type CartItem } from './mock-data'
 
 interface WishlistItem {
   product: Product

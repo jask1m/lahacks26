@@ -197,30 +197,6 @@ async function fillSelector(page: Page, selector: string, value: string) {
   throw lastError ?? new Error(`No fillable selector matched: ${selector}`);
 }
 
-async function waitForSelectorMatch(
-  page: Page,
-  selector: string,
-  state: "attached" | "visible" = "attached"
-) {
-  const candidates = getSelectorCandidates(selector);
-  let lastError: Error | null = null;
-
-  for (const candidate of candidates) {
-    try {
-      const locator = page.locator(candidate).first();
-      await locator.waitFor({ timeout: 5000, state });
-      return candidate;
-    } catch (error) {
-      lastError =
-        error instanceof Error
-          ? error
-          : new Error("Unknown waitForSelector error");
-    }
-  }
-
-  throw lastError ?? new Error(`No selector matched: ${selector}`);
-}
-
 async function assertLinkMatch(page: Page, selector: string, expectedUrl?: string) {
   const candidates = getSelectorCandidates(selector);
   let lastError: Error | null = null;

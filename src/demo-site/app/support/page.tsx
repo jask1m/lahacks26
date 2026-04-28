@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Mail, Phone, MessageCircle, Send, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/demo-site/components/ui/button'
 import { Input } from '@/demo-site/components/ui/input'
@@ -19,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/demo-site/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/demo-site/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/demo-site/components/ui/card'
 import { Alert, AlertDescription } from '@/demo-site/components/ui/alert'
 import { Field, FieldGroup, FieldLabel, FieldMessage } from '@/demo-site/components/ui/field'
 import { faqs } from '@/demo-site/lib/mock-data'
