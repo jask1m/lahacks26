@@ -10,7 +10,7 @@ Define reusable UI test flows, execute them with AI agents, and gain precise vis
 DeepCrawl combines the speed and adaptability of AI-driven automation with the reliability, structure, and transparency of a modern testing framework.
 
 ## Overview
-![DeepCrawl Diagram](assets/diagram.png "DeepCrawl diagram").
+![DeepCrawl Diagram](assets/diagram.png "DeepCrawl diagram")
 
 ## Problem We Solve
 Existing UI testing tools are either too manual and brittle or too opaque when AI agents are involved.
